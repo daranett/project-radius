@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Users - RADIUS Manager{% endblock %}
+{% block page_title %}Users{% endblock %}
+{% block page_subtitle %}Manage PPPoE Users & Bandwidth Limits{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-800">PPPoE Users</h3>
+            <button onclick="openAddUserModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                <i class="fas fa-user-plus"></i>
+                <span>Add User</span>
+            </button>
+        </div>
+
+        <div id="usersList" class="space-y-4">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-blue-600 text-2xl mb-2"></i>
+                <p class="text-gray-600">Loading users...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div id="addUserModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">Add New PPPoE User</h3>
+            <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="addUserForm" class="space-y-6">
+            <!-- Basic Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                    <input type="text" name="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="user123">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                    <input type="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="••••••••">
+                </div>
+            </div>
+
+            <!-- IP Configuration -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
+                <input type="text" name="ip_address" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="192.168.1.100">
+                <p class="text-xs text-gray-500 mt-1">Leave empty for dynamic IP assignment</p>
+            </div>
+
+            <!-- Bandwidth Limits -->
+            <div class="border-t pt-4">
+                <h4 class="text-md font-semibold text-gray-800 mb-4">Bandwidth & Limits</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Rate Limit</label>
+                        <input type="text" name="rate_limit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10M/5M">
+                        <p class="text-xs text-gray-500 mt-1">Format: Download/Upload (e.g., 10M/5M)</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Limit</label>
+                        <input type="text" name="data_limit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10GB">
+                        <p class="text-xs text-gray-500 mt-1">Monthly data limit (e.g., 10GB, 500MB)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Limits -->
+            <div class="border-t pt-4">
+                <h4 class="text-md font-semibold text-gray-800 mb-4">Session Limits</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Session Timeout (seconds)</label>
+                        <input type="number" name="session_timeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="3600">
+                        <p class="text-xs text-gray-500 mt-1">Maximum session duration</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Idle Timeout (seconds)</label>
+                        <input type="number" name="idle_timeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="300">
+                        <p class="text-xs text-gray-500 mt-1">Disconnect if idle for this time</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Default PPPoE Attributes (Info) -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-blue-800 mb-2">Default PPPoE Attributes</h4>
+                <ul class="text-xs text-blue-700 space-y-1">
+                    <li>• Framed-Protocol: PPP</li>
+                    <li>• Service-Type: Framed-User</li>
+                    <li>• Framed-Compression: Van-Jacobson-TCP-IP</li>
+                </ul>
+            </div>
+
+            <div class="flex space-x-3 pt-4 border-t">
+                <button type="button" onclick="closeAddUserModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    Add User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">Edit PPPoE User</h3>
+            <button onclick="closeEditUserModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="editUserForm" class="space-y-6">
+            <!-- Basic Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="editUsername" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="text" id="editPassword" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500" value="••••••••">
+                    <p class="text-xs text-gray-500 mt-1">Password cannot be changed here</p>
+                </div>
+            </div>
+
+            <!-- IP Configuration -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
+                <input type="text" id="editIpAddress" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="192.168.1.100">
+                <p class="text-xs text-gray-500 mt-1">Leave empty for dynamic IP assignment</p>
+            </div>
+
+            <!-- Bandwidth Limits -->
+            <div class="border-t pt-4">
+                <h4 class="text-md font-semibold text-gray-800 mb-4">Bandwidth & Limits</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Rate Limit</label>
+                        <input type="text" id="editRateLimit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10M/5M">
+                        <p class="text-xs text-gray-500 mt-1">Format: Download/Upload (e.g., 10M/5M)</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Limit</label>
+                        <input type="text" id="editDataLimit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10GB">
+                        <p class="text-xs text-gray-500 mt-1">Monthly data limit (e.g., 10GB, 500MB)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Limits -->
+            <div class="border-t pt-4">
+                <h4 class="text-md font-semibold text-gray-800 mb-4">Session Limits</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Session Timeout (seconds)</label>
+                        <input type="number" id="editSessionTimeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="3600">
+                        <p class="text-xs text-gray-500 mt-1">Maximum session duration</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Idle Timeout (seconds)</label>
+                        <input type="number" id="editIdleTimeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="300">
+                        <p class="text-xs text-gray-500 mt-1">Disconnect if idle for this time</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Default PPPoE Attributes (Info) -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-blue-800 mb-2">Default PPPoE Attributes</h4>
+                <ul class="text-xs text-blue-700 space-y-1">
+                    <li>• Framed-Protocol: PPP</li>
+                    <li>• Service-Type: Framed-User</li>
+                    <li>• Framed-Compression: Van-Jacobson-TCP-IP</li>
+                </ul>
+            </div>
+
+            <div class="flex space-x-3 pt-4 border-t">
+                <button type="button" onclick="closeEditUserModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                    <i class="fas fa-save"></i>
+                    <span>Update User</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load users list
+    async function loadUsers() {
+        console.log('Loading users...');
+        try {
+            const data = await apiCall('/api/users');
+            console.log('Users API response:', data);
+            
+            const usersList = document.getElementById('usersList');
+            
+            if (data.error) {
+                usersList.innerHTML = `
+                    <div class="text-center py-8 text-red-600">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p class="font-medium">Error loading users</p>
+                        <p class="text-sm mt-1">${data.error}</p>
+                        <button onclick="loadUsers()" class="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                            Retry
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                usersList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-users text-2xl mb-2"></i>
+                        <p class="font-medium">No users configured</p>
+                        <p class="text-sm mt-1">Click "Add User" to create your first PPPoE account</p>
+                    </div>
+                `;
+                return;
+            }
+
+            usersList.innerHTML = data.map(user => `
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-green-300 transition-colors">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <i class="fas fa-user text-green-600"></i>
+                                <h4 class="font-semibold text-gray-800">${user.username}</h4>
+                                ${user.active_sessions > 0 ? `
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded flex items-center space-x-1">
+                                        <i class="fas fa-plug text-xs"></i>
+                                        <span>${user.active_sessions} active</span>
+                                    </span>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
+                                <div>
+                                    <span class="font-medium">Password:</span>
+                                    <div class="text-gray-800 font-mono">••••••••</div>
+                                </div>
+                                
+                                <div>
+                                    <span class="font-medium">IP Address:</span>
+                                    <div class="text-gray-800">${user.ip_address || '<span class="text-gray-400">Dynamic</span>'}</div>
+                                </div>
+                                
+                                ${user.rate_limit ? `
+                                    <div>
+                                        <span class="font-medium">Rate Limit:</span>
+                                        <div class="text-gray-800">${user.rate_limit}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${user.session_timeout ? `
+                                    <div>
+                                        <span class="font-medium">Session Timeout:</span>
+                                        <div class="text-gray-800">${user.session_timeout}s</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <!-- Additional attributes -->
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                ${user.idle_timeout ? `
+                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                                        Idle: ${user.idle_timeout}s
+                                    </span>
+                                ` : ''}
+                                
+                                ${user.data_limit ? `
+                                    <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+                                        Data: ${user.data_limit}
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="editUser('${user.username}', '${user.ip_address || ''}', '${user.rate_limit || ''}', '${user.session_timeout || ''}', '${user.idle_timeout || ''}', '${user.data_limit || ''}')" 
+                                    class="text-blue-600 hover:text-blue-800 p-2 transition-colors" title="Edit User">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteUser(${user.id})" class="text-red-600 hover:text-red-800 p-2 transition-colors" title="Delete User">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading users:', error);
+            const usersList = document.getElementById('usersList');
+            usersList.innerHTML = `
+                <div class="text-center py-8 text-red-600">
+                    <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                    <p class="font-medium">Network error</p>
+                    <p class="text-sm mt-1">${error.message}</p>
+                    <button onclick="loadUsers()" class="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    // Modal functions
+    function openAddUserModal() {
+        document.getElementById('addUserModal').classList.remove('hidden');
+    }
+
+    function closeAddUserModal() {
+        document.getElementById('addUserModal').classList.add('hidden');
+    }
+
+    // Edit User functions
+    function editUser(username, ipAddress, rateLimit, sessionTimeout, idleTimeout, dataLimit) {
+        document.getElementById('editUsername').value = username;
+        document.getElementById('editIpAddress').value = ipAddress || '';
+        document.getElementById('editRateLimit').value = rateLimit || '';
+        document.getElementById('editSessionTimeout').value = sessionTimeout || '';
+        document.getElementById('editIdleTimeout').value = idleTimeout || '';
+        document.getElementById('editDataLimit').value = dataLimit || '';
+        
+        document.getElementById('editUserModal').classList.remove('hidden');
+    }
+
+    function closeEditUserModal() {
+        document.getElementById('editUserModal').classList.add('hidden');
+    }
+
+    // Add User form
+    document.getElementById('addUserForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+        submitBtn.disabled = true;
+
+        try {
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            console.log('Adding user:', data);
+
+            const result = await apiCall('/api/users/add', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            console.log('Add user result:', result);
+
+            if (result.success) {
+                showNotification(result.message, 'success');
+                closeAddUserModal();
+                this.reset();
+                loadUsers();
+            } else {
+                showNotification('Failed to add user: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showNotification('Network error: ' + error.message, 'error');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+
+    // Edit User form
+    document.getElementById('editUserForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+        submitBtn.disabled = true;
+
+        try {
+            const username = document.getElementById('editUsername').value;
+            const formData = {
+                ip_address: document.getElementById('editIpAddress').value,
+                rate_limit: document.getElementById('editRateLimit').value,
+                session_timeout: document.getElementById('editSessionTimeout').value,
+                idle_timeout: document.getElementById('editIdleTimeout').value,
+                data_limit: document.getElementById('editDataLimit').value
+            };
+            
+            console.log('Updating user:', username, formData);
+
+            const result = await apiCall('/api/users/update/' + username, {
+                method: 'PUT',
+                body: JSON.stringify(formData)
+            });
+
+            console.log('Update user result:', result);
+
+            if (result.success) {
+                showNotification(result.message, 'success');
+                closeEditUserModal();
+                loadUsers();
+            } else {
+                showNotification('Failed to update user: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showNotification('Network error: ' + error.message, 'error');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+
+    // Delete User
+    async function deleteUser(userId) {
+        if (!confirm('Are you sure you want to delete this user?')) return;
+
+        try {
+            const result = await apiCall('/api/users/delete/' + userId, {
+                method: 'DELETE'
+            });
+
+            if (result.success) {
+                showNotification(result.message, 'success');
+                loadUsers();
+            } else {
+                showNotification('Failed to delete user: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showNotification('Network error: ' + error.message, 'error');
+        }
+    }
+
+    // Load users on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, loading users...');
+        loadUsers();
+    });
+</script>
+{% endblock %}

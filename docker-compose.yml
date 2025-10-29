@@ -1,0 +1,35 @@
+# File: ~/radius-dashboard/docker-compose.yml
+services:
+  radius-dashboard:
+    build: .
+    container_name: radius-dashboard
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.radius.entrypoints=web"
+      - "traefik.http.routers.radius.rule=Host(`radius.access.daranett.com`)"
+      - "traefik.http.routers.radius.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.radius-secure.entrypoints=websecure"
+      - "traefik.http.routers.radius-secure.rule=Host(`radius.access.daranett.com`)"
+      - "traefik.http.routers.radius-secure.tls=true"
+      - "traefik.http.routers.radius-secure.service=radius"
+      - "traefik.http.services.radius.loadbalancer.server.port=5000"
+    environment:
+      - DB_HOST=freeradius-db
+      - DB_NAME=radius
+      - DB_USER=radius
+      - DB_PASSWORD=radiuspass
+      - DB_PORT=5432
+      - SECRET_KEY=05052020fAk@#
+    volumes:
+      - ./app:/app
+    networks:
+      - postgres-radius_radius-net  # Untuk konek ke DB
+      - my-net                        # Untuk Traefik
+
+networks:
+  postgres-radius_radius-net:
+    external: true
+  my-net:
+    external: true
