@@ -4,11 +4,25 @@ import time
 from config import Config
 from werkzeug.security import check_password_hash, generate_password_hash
 import functools
+import routeros_api
+from routeros_api.exceptions import RouterOsApiConnectionError, RouterOsApiCommunicationError
+from datetime import datetime
+import traceback
+import os
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'radius-dashboard-secret-2024'
 app.config.from_object(Config)
 
+# Konfigurasi upload file
+app.config['UPLOAD_FOLDER'] = 'static/uploads/customers'
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # === LOGIN REQUIRED DECORATOR ===
 def login_required(f):
@@ -49,6 +63,1229 @@ def execute_query(query, params=None, fetch=True):
     finally:
         cur.close()
         conn.close()
+
+
+# === HELPER FUNCTION FOR JSON REQUESTS ===
+def get_request_data():
+    """Handle both form data and JSON data"""
+    try:
+        if request.is_json:
+            return request.get_json()
+        else:
+            # Handle form data
+            data = request.form.to_dict()
+            # Convert empty strings to None for database
+            for key in data:
+                if data[key] == '':
+                    data[key] = None
+            return data
+    except Exception as e:
+        print(f"DEBUG: Error getting request data: {str(e)}")
+        return {}
+
+
+# === MIKROTIK HELPER FUNCTIONS ===
+def get_nas_devices():
+    """Get all NAS devices from database"""
+    try:
+        return execute_query("SELECT * FROM nas ORDER BY id")
+    except Exception as e:
+        print(f"Error getting NAS devices: {e}")
+        return []
+
+def get_nas_by_id(nas_id):
+    """Get NAS device by ID"""
+    try:
+        result = execute_query("SELECT * FROM nas WHERE id = %s", (nas_id,))
+        return result[0] if result else None
+    except Exception as e:
+        print(f"Error getting NAS by ID: {e}")
+        return None
+
+def format_bytes(bytes_str):
+    """Format bytes to human readable format"""
+    try:
+        bytes_val = int(bytes_str)
+        if bytes_val < 1024:
+            return f"{bytes_val} B"
+        elif bytes_val < 1024*1024:
+            return f"{bytes_val/1024:.1f} KB"
+        elif bytes_val < 1024*1024*1024:
+            return f"{bytes_val/(1024*1024):.1f} MB"
+        else:
+            return f"{bytes_val/(1024*1024*1024):.1f} GB"
+    except:
+        return "0 B"
+
+def format_rate(rate_str):
+    """Format rate to human readable format"""
+    try:
+        rate_val = int(rate_str)
+        if rate_val < 1000:
+            return f"{rate_val} b/s"
+        elif rate_val < 1000000:
+            return f"{rate_val/1000:.1f} Kb/s"
+        else:
+            return f"{rate_val/1000000:.1f} Mb/s"
+    except:
+        return "0 b/s"
+
+def calculate_disk_usage(api):
+    """Return USB and Internal Flash usage - REAL-TIME"""
+    usb_usage = 0
+    flash_usage = 0
+    try:
+        # USB - /disk
+        try:
+            disk_resource = api.get_resource('/disk')
+            disks = disk_resource.get()
+            print(f"DEBUG: /disk response: {disks}")
+            if disks:
+                for disk in disks:
+                    mount = disk.get('mount-point', '')
+                    if mount and mount not in ['swap', ''] and mount:
+                        use = disk.get('use', '0%')
+                        print(f"DEBUG: Disk found: {mount}, use={use}")
+                        try:
+                            usb_usage = int(use.replace("%", ""))
+                        except:
+                            pass
+        except Exception as e:
+            print(f"DEBUG: /disk failed: {e}")
+
+        # Internal Flash - /system/resource
+        system_resource = api.get_resource('/system/resource')
+        system_info = system_resource.get()
+        if system_info and system_info[0].get('total-hdd-space'):
+            total_kb = int(system_info[0].get('total-hdd-space', 1))
+            free_kb = int(system_info[0].get('free-hdd-space', 0))
+            if total_kb > 0:
+                flash_usage = int(((total_kb - free_kb) / total_kb) * 100)
+                print(f"DEBUG: Internal flash usage: {flash_usage}%")
+
+        print(f"DEBUG: USB: {usb_usage}%, Flash: {flash_usage}%")
+        return usb_usage, flash_usage
+
+    except Exception as e:
+        print(f"DEBUG: calculate_disk_usage error: {e}")
+        return 0, 0
+
+def calculate_memory_usage(system_info):
+    """Calculate memory usage properly"""
+    try:
+        if system_info:
+            free_memory = int(system_info[0].get('free-memory', 0))
+            total_memory = int(system_info[0].get('total-memory', 1))
+            if total_memory > 0:
+                used_memory = total_memory - free_memory
+                usage_percent = (used_memory / total_memory) * 100
+                return round(usage_percent, 1)
+        return 0
+    except:
+        return 0
+
+def save_mikrotik_credentials_db(nas_id, username, password, port=8728):
+    """Save MikroTik credentials to database"""
+    try:
+        execute_query("""
+            CREATE TABLE IF NOT EXISTS mikrotik_credentials (
+                id SERIAL PRIMARY KEY,
+                nas_id INTEGER NOT NULL UNIQUE,
+                username VARCHAR(100) NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                port INTEGER DEFAULT 8728,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (nas_id) REFERENCES nas(id) ON DELETE CASCADE
+            )
+        """, fetch=False)
+        
+        execute_query("""
+            INSERT INTO mikrotik_credentials (nas_id, username, password, port)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (nas_id) 
+            DO UPDATE SET 
+                username = EXCLUDED.username,
+                password = EXCLUDED.password,
+                port = EXCLUDED.port,
+                updated_at = CURRENT_TIMESTAMP
+        """, (nas_id, username, password, port), fetch=False)
+        
+        print(f"DEBUG: Credentials saved to database for NAS {nas_id}")
+        return True
+    except Exception as e:
+        print(f"DEBUG: Error saving credentials to database: {str(e)}")
+        return False
+
+def get_mikrotik_credentials_db(nas_id):
+    """Get MikroTik credentials from database"""
+    try:
+        result = execute_query("""
+            SELECT username, password, port 
+            FROM mikrotik_credentials 
+            WHERE nas_id = %s
+        """, (nas_id,))
+        
+        if result:
+            print(f"DEBUG: Retrieved credentials from database for NAS {nas_id}")
+            return result[0]
+        else:
+            print(f"DEBUG: No credentials found in database for NAS {nas_id}")
+            return None
+    except Exception as e:
+        print(f"DEBUG: Error getting credentials from database: {str(e)}")
+        return None
+
+
+# === MIKROTIK MONITORING WITH HISTORY ===
+monitoring_history = {}
+
+# === TRAFFIC RATE CALCULATION HISTORY (per NAS) ===
+traffic_history = {}
+
+def calculate_rates(nas_id, interface_name, current_rx, current_tx):
+    current_time = time.time()
+    key = f"{nas_id}_{interface_name}"
+    
+    if key not in traffic_history:
+        traffic_history[key] = {
+            'last_rx': current_rx,
+            'last_tx': current_tx,
+            'last_time': current_time
+        }
+        return 0, 0
+    
+    history = traffic_history[key]
+    time_diff = current_time - history['last_time']
+    
+    if time_diff >= 2:  # Minimal 2 detik
+        rx_rate = int((current_rx - history['last_rx']) * 8 / time_diff)
+        tx_rate = int((current_tx - history['last_tx']) * 8 / time_diff)
+        
+        traffic_history[key] = {
+            'last_rx': current_rx,
+            'last_tx': current_tx,
+            'last_time': current_time
+        }
+        return rx_rate, tx_rate
+    else:
+        return 0, 0
+
+
+@app.route('/api/mikrotik/<int:nas_id>/monitoring/realtime')
+@login_required
+def mikrotik_monitoring_realtime(nas_id):
+    try:
+        print(f"DEBUG: Starting realtime monitoring for NAS ID: {nas_id}")
+        
+        # Get NAS device details
+        nas = get_nas_by_id(nas_id)
+        if not nas:
+            print("DEBUG: NAS device not found")
+            return jsonify({'success': False, 'error': 'NAS device not found'}), 404
+        
+        print(f"DEBUG: Found NAS: {nas['nasname']} - {nas['shortname']}")
+        
+        # Get credentials - cek session dulu, lalu database
+        session_key = f'mikrotik_creds_{nas_id}'
+        creds = session.get(session_key, {})
+        
+        if not creds.get('username') or not creds.get('password'):
+            db_creds = get_mikrotik_credentials_db(nas_id)
+            if db_creds:
+                creds = {
+                    'username': db_creds['username'],
+                    'password': db_creds['password'],
+                    'port': db_creds['port']
+                }
+                session[session_key] = creds
+            else:
+                print("DEBUG: No credentials configured in database")
+                return jsonify({'success': False, 'error': 'MikroTik credentials not configured. Please set username and password in Settings.'}), 400
+        
+        print(f"DEBUG: Using credentials: {creds}")
+        
+        mikrotik_ip = nas['nasname']
+        mikrotik_username = creds.get('username', 'admin')
+        mikrotik_password = creds.get('password', '')
+        mikrotik_port = creds.get('port', 8728)
+        
+        if not mikrotik_password:
+            print("DEBUG: No password configured")
+            return jsonify({'success': False, 'error': 'MikroTik credentials not configured. Please set username and password in Settings.'}), 400
+        
+        print(f"DEBUG: Attempting connection to {mikrotik_ip}:{mikrotik_port} with user {mikrotik_username}")
+        
+        # Connect to MikroTik
+        try:
+            connection = routeros_api.RouterOsApiPool(
+                mikrotik_ip,
+                username=mikrotik_username,
+                password=mikrotik_password,
+                port=mikrotik_port,
+                plaintext_login=True,
+                use_ssl=False
+            )
+            api = connection.get_api()
+            print("DEBUG: Successfully connected to MikroTik")
+        except Exception as conn_error:
+            print(f"DEBUG: Connection failed: {str(conn_error)}")
+            return jsonify({'success': False, 'error': f'Connection failed: {str(conn_error)}'}), 500
+        
+        # Get monitoring data
+        try:
+            # System resource
+            system_resource = api.get_resource('/system/resource')
+            system_info = system_resource.get()
+            print(f"DEBUG: System info retrieved")
+            
+            # Interfaces
+            interface_resource = api.get_resource('/interface')
+            interfaces = interface_resource.get()
+            print(f"DEBUG: Found {len(interfaces)} interfaces")
+            
+            # Identity
+            identity_resource = api.get_resource('/system/identity')
+            identity = identity_resource.get()
+            print(f"DEBUG: Identity retrieved")
+            
+            # v7+: Gunakan rx-byte/tx-byte → hitung rate manual
+            print("DEBUG: Using manual rate calculation from rx-byte/tx-byte")
+
+        except Exception as data_error:
+            print(f"DEBUG: Data retrieval failed: {str(data_error)}")
+            connection.disconnect()
+            return jsonify({'success': False, 'error': f'Data retrieval failed: {str(data_error)}'}), 500
+        
+        # === HITUNG DISK USAGE SEBELUM DISCONNECT ===
+        usb_usage, flash_usage = calculate_disk_usage(api)
+        
+        connection.disconnect()
+        
+        # Process data untuk grafik
+        current_time = int(time.time() * 1000)
+        
+        # Initialize history untuk device ini
+        if nas_id not in monitoring_history:
+            monitoring_history[nas_id] = {
+                'cpu': [],
+                'memory': [],
+                'interfaces': {}
+            }
+        
+        # Process system resources
+        cpu_load = system_info[0].get('cpu-load', '0') if system_info else '0'
+        memory_usage = calculate_memory_usage(system_info)
+        
+        # Update CPU history
+        monitoring_history[nas_id]['cpu'].append({
+            'time': current_time,
+            'value': float(cpu_load)
+        })
+        if len(monitoring_history[nas_id]['cpu']) > 60:
+            monitoring_history[nas_id]['cpu'].pop(0)
+        
+        # Update memory history
+        monitoring_history[nas_id]['memory'].append({
+            'time': current_time,
+            'value': float(memory_usage)
+        })
+        if len(monitoring_history[nas_id]['memory']) > 60:
+            monitoring_history[nas_id]['memory'].pop(0)
+        
+        # Process interfaces dengan perhitungan manual
+        processed_interfaces = []
+        interface_count = 0
+        
+        for iface in interfaces:
+            name = iface.get('name', '')
+            iface_type = iface.get('type', '')
+            
+            # Filter interface penting
+            if not (name.startswith(('ether', 'vlan', 'bridge', 'pppoe')) and 
+                    iface_type in ['ether', 'vlan', 'bridge', 'ppp-out']):
+                continue
+            
+            # Ambil byte counter
+            rx_bytes = int(iface.get('rx-byte', 0))
+            tx_bytes = int(iface.get('tx-byte', 0))
+            
+            # HITUNG RATE MANUAL
+            rx_rate, tx_rate = calculate_rates(nas_id, name, rx_bytes, tx_bytes)
+            
+            # Update history
+            if name not in monitoring_history[nas_id]['interfaces']:
+                monitoring_history[nas_id]['interfaces'][name] = {'rx': [], 'tx': []}
+            
+            monitoring_history[nas_id]['interfaces'][name]['rx'].append({
+                'time': current_time,
+                'value': rx_rate
+            })
+            monitoring_history[nas_id]['interfaces'][name]['tx'].append({
+                'time': current_time,
+                'value': tx_rate
+            })
+            
+            # Keep last 30
+            if len(monitoring_history[nas_id]['interfaces'][name]['rx']) > 30:
+                monitoring_history[nas_id]['interfaces'][name]['rx'].pop(0)
+                monitoring_history[nas_id]['interfaces'][name]['tx'].pop(0)
+            
+            processed_interfaces.append({
+                'name': name,
+                'type': iface_type,
+                'running': iface.get('running', 'false') == 'true',
+                'rx_rate': format_rate(str(rx_rate)),
+                'tx_rate': format_rate(str(tx_rate)),
+                'rx_bits': rx_rate,
+                'tx_bits': tx_rate,
+                'rx_total': format_bytes(str(rx_bytes)),
+                'tx_total': format_bytes(str(tx_bytes))
+            })
+            
+            interface_count += 1
+            if interface_count >= 12:
+                break
+        
+        # Prepare response
+        monitoring_data = {
+            'success': True,
+            'timestamp': current_time,
+            'system': {
+                'hostname': identity[0].get('name', 'Unknown') if identity else 'Unknown',
+                'version': system_info[0].get('version', 'N/A') if system_info else 'N/A',
+                'uptime': system_info[0].get('uptime', 'N/A') if system_info else 'N/A',
+                'board': system_info[0].get('board-name', 'N/A') if system_info else 'N/A',
+            },
+            'resources': {
+                'cpu': cpu_load,
+                'memory': str(memory_usage),
+                'disk_usb': str(usb_usage),
+                'disk_flash': str(flash_usage)
+            },
+            'interfaces': processed_interfaces,
+            'history': {
+                'cpu': monitoring_history[nas_id]['cpu'][-30:],
+                'memory': monitoring_history[nas_id]['memory'][-30:],
+                'interfaces': monitoring_history[nas_id]['interfaces']
+            }
+        }
+        
+        print(f"DEBUG: Successfully prepared monitoring data with {len(processed_interfaces)} interfaces")
+        if processed_interfaces:
+            print(f"DEBUG: Sample traffic - {processed_interfaces[0]['name']}: RX={processed_interfaces[0]['rx_rate']}, TX={processed_interfaces[0]['tx_rate']}")
+        return jsonify(monitoring_data)
+        
+    except RouterOsApiConnectionError as e:
+        print(f"DEBUG: RouterOS API Connection Error: {str(e)}")
+        return jsonify({'success': False, 'error': f'Cannot connect to MikroTik device. Check IP address, port, and network connectivity.'}), 500
+    except RouterOsApiCommunicationError as e:
+        print(f"DEBUG: RouterOS API Communication Error: {str(e)}")
+        return jsonify({'success': False, 'error': f'Authentication failed. Check username and password.'}), 401
+    except Exception as e:
+        print(f"DEBUG: Unexpected error: {str(e)}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'Unexpected error: {str(e)}'}), 500
+
+# === REPORTS API ===
+@app.route('/api/billing/reports/summary')
+@login_required
+def api_billing_reports_summary():
+    """Get billing summary reports"""
+    try:
+        # Monthly income summary
+        monthly_income = execute_query("""
+            SELECT 
+                EXTRACT(YEAR FROM i.created_at) as year,
+                EXTRACT(MONTH FROM i.created_at) as month,
+                COUNT(i.id) as invoice_count,
+                COALESCE(SUM(i.amount), 0) as total_amount,
+                COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.amount ELSE 0 END), 0) as paid_amount,
+                COALESCE(SUM(CASE WHEN i.status = 'pending' THEN i.amount ELSE 0 END), 0) as pending_amount
+            FROM billing_invoices i
+            WHERE i.deleted_at IS NULL
+            GROUP BY year, month
+            ORDER BY year DESC, month DESC
+            LIMIT 12
+        """)
+        
+        # Package performance
+        package_performance = execute_query("""
+            SELECT 
+                p.name as package_name,
+                COUNT(c.id) as customer_count,
+                COUNT(i.id) as invoice_count,
+                COALESCE(SUM(i.amount), 0) as total_revenue
+            FROM billing_packages p
+            LEFT JOIN billing_customers c ON p.id = c.package_id AND c.deleted_at IS NULL
+            LEFT JOIN billing_invoices i ON c.id = i.customer_id AND i.deleted_at IS NULL
+            WHERE p.deleted_at IS NULL
+            GROUP BY p.id, p.name
+            ORDER BY total_revenue DESC
+        """)
+        
+        # Payment methods summary
+        payment_methods = execute_query("""
+            SELECT 
+                payment_method,
+                COUNT(*) as transaction_count,
+                COALESCE(SUM(amount), 0) as total_amount
+            FROM billing_payments 
+            WHERE deleted_at IS NULL
+            GROUP BY payment_method
+            ORDER BY total_amount DESC
+        """)
+        
+        return jsonify({
+            'monthly_income': monthly_income,
+            'package_performance': package_performance,
+            'payment_methods': payment_methods
+        })
+        
+    except Exception as e:
+        print(f"DEBUG: Error loading reports: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# === RECORD PAYMENT ROUTE ===
+@app.route('/api/billing/payments/record', methods=['POST'])
+@login_required
+def api_record_payment():
+    """Record payment for invoice"""
+    try:
+        data = get_request_data()
+        
+        # Validasi data yang required
+        if not data.get('invoice_id') or not data.get('amount'):
+            return jsonify({'success': False, 'error': 'Invoice ID dan amount wajib diisi'})
+        
+        # Cek apakah invoice exists
+        invoice = execute_query("""
+            SELECT i.*, c.full_name, p.name as package_name, p.price_monthly as invoice_amount
+            FROM billing_invoices i
+            JOIN billing_customers c ON i.customer_id = c.id
+            JOIN billing_packages p ON i.package_id = p.id
+            WHERE i.id = %s AND i.deleted_at IS NULL
+        """, (data['invoice_id'],))
+        
+        if not invoice:
+            return jsonify({'success': False, 'error': 'Invoice tidak ditemukan'}), 404
+        
+        invoice_data = invoice[0]
+        
+        # Record payment - GUNAKAN method DARI FRONTEND
+        execute_query("""
+            INSERT INTO billing_payments 
+            (invoice_id, payment_method, amount, reference_number, notes, payment_date)
+            VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+        """, (
+            data['invoice_id'],
+            data.get('method', 'cash'),  # INI YANG DIUBAH
+            data['amount'],
+            data.get('reference_number', ''),
+            data.get('notes', 'Pembayaran invoice')
+        ), fetch=False)
+        
+        # Update invoice status to paid if payment covers full amount
+        if float(data['amount']) >= float(invoice_data['invoice_amount']):
+            execute_query("""
+                UPDATE billing_invoices 
+                SET status = 'paid'
+                WHERE id = %s AND deleted_at IS NULL
+            """, (data['invoice_id'],), fetch=False)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Pembayaran berhasil dicatat'
+        })
+        
+    except Exception as e:
+        print(f"DEBUG: Error recording payment: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# === BILLING ROUTES ===
+
+@app.route('/billing/packages')
+@login_required
+def billing_packages():
+    return render_template('billing/packages.html')
+
+@app.route('/billing/customers')
+@login_required
+def billing_customers():
+    return render_template('billing/customers.html')
+
+@app.route('/billing/invoices')
+@login_required
+def billing_invoices():
+    return render_template('billing/invoices.html')
+
+@app.route('/billing/payments')
+@login_required
+def billing_payments():
+    return render_template('billing/payments.html')
+
+@app.route('/billing/reports')
+@login_required
+def billing_reports():
+    return render_template('billing/reports.html')
+
+# === BILLING API ROUTES ===
+
+@app.route('/api/billing/stats')
+@login_required
+def api_billing_stats():
+    """Get billing statistics for dashboard"""
+    try:
+        stats = execute_query("""
+            SELECT 
+                (SELECT COUNT(*) FROM billing_customers WHERE status = 'active' AND deleted_at IS NULL) as active_customers,
+                (SELECT COUNT(*) FROM billing_invoices WHERE status = 'pending' AND deleted_at IS NULL) as pending_invoices,
+                (SELECT COALESCE(SUM(amount), 0) FROM billing_payments WHERE DATE(payment_date) = CURRENT_DATE AND deleted_at IS NULL) as today_income,
+                (SELECT COALESCE(SUM(amount), 0) FROM billing_invoices WHERE status = 'paid' AND period_month = EXTRACT(MONTH FROM CURRENT_DATE) AND deleted_at IS NULL) as monthly_income,
+                (SELECT COUNT(*) FROM billing_packages WHERE is_active = true AND deleted_at IS NULL) as active_packages,
+                (SELECT COUNT(*) FROM billing_packages WHERE deleted_at IS NULL) as total_packages
+        """)
+        return jsonify(stats[0] if stats else {})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# === PACKAGES CRUD API ===
+
+@app.route('/api/billing/packages')
+@login_required
+def api_billing_packages():
+    """Get all active billing packages"""
+    try:
+        packages = execute_query("""
+            SELECT * FROM billing_packages 
+            WHERE deleted_at IS NULL 
+            ORDER BY name
+        """)
+        return jsonify(packages)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/billing/packages/<int:package_id>')
+@login_required
+def api_get_billing_package(package_id):
+    """Get specific package"""
+    try:
+        package = execute_query("""
+            SELECT * FROM billing_packages 
+            WHERE id = %s AND deleted_at IS NULL
+        """, (package_id,))
+        return jsonify(package[0] if package else {})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/billing/packages/add', methods=['POST'])
+@login_required
+def api_add_billing_package():
+    """Add new billing package"""
+    try:
+        data = get_request_data()
+        execute_query("""
+            INSERT INTO billing_packages (name, description, price_monthly, price_daily, bandwidth_limit, session_timeout, idle_timeout)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data['name'], 
+            data.get('description', ''), 
+            data['price_monthly'], 
+            data['price_daily'], 
+            data.get('bandwidth_limit', ''), 
+            data.get('session_timeout', 3600), 
+            data.get('idle_timeout', 300)
+        ), fetch=False)
+        return jsonify({'success': True, 'message': 'Package added successfully'})
+    except Exception as e:
+        print(f"DEBUG: Error adding package: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/billing/packages/update/<int:package_id>', methods=['PUT'])
+@login_required
+def api_update_billing_package(package_id):
+    """Update billing package"""
+    try:
+        data = get_request_data()
+        print(f"DEBUG: Updating package {package_id} with data: {data}")
+        
+        execute_query("""
+            UPDATE billing_packages 
+            SET name = %s, description = %s, price_monthly = %s, price_daily = %s, 
+                bandwidth_limit = %s, session_timeout = %s, idle_timeout = %s, is_active = %s
+            WHERE id = %s AND deleted_at IS NULL
+        """, (
+            data['name'], data.get('description', ''), data['price_monthly'], data['price_daily'],
+            data.get('bandwidth_limit', ''), data.get('session_timeout', 3600), 
+            data.get('idle_timeout', 300), data.get('is_active', True), package_id
+        ), fetch=False)
+        return jsonify({'success': True, 'message': 'Package updated successfully'})
+    except Exception as e:
+        print(f"DEBUG: Error updating package: {str(e)}")
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/billing/packages/delete/<int:package_id>', methods=['DELETE'])
+@login_required
+def api_delete_billing_package(package_id):
+    """Soft delete billing package"""
+    try:
+        # Cek apakah package digunakan oleh customers
+        customers_using = execute_query("""
+            SELECT COUNT(*) as count FROM billing_customers 
+            WHERE package_id = %s AND deleted_at IS NULL
+        """, (package_id,))
+        
+        if customers_using and customers_using[0]['count'] > 0:
+            return jsonify({'success': False, 'error': 'Cannot delete package. It is being used by customers.'}), 400
+        
+        execute_query("""
+            UPDATE billing_packages SET deleted_at = CURRENT_TIMESTAMP 
+            WHERE id = %s AND deleted_at IS NULL
+        """, (package_id,), fetch=False)
+        return jsonify({'success': True, 'message': 'Package deleted successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# === CUSTOMERS CRUD API ===
+
+@app.route('/api/billing/customers')
+@login_required
+def api_billing_customers():
+    """Get all active customers"""
+    try:
+        customers = execute_query("""
+            SELECT c.*, p.name as package_name, p.price_monthly,
+                   (SELECT COUNT(*) FROM billing_invoices i WHERE i.customer_id = c.id AND i.status = 'pending' AND i.deleted_at IS NULL) as pending_invoices
+            FROM billing_customers c
+            LEFT JOIN billing_packages p ON c.package_id = p.id
+            WHERE c.deleted_at IS NULL
+            ORDER BY c.full_name
+        """)
+        return jsonify(customers)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/billing/customers/<int:customer_id>')
+@login_required
+def api_get_billing_customer(customer_id):
+    """Get specific customer"""
+    try:
+        customer = execute_query("""
+            SELECT c.*, p.name as package_name, p.price_monthly
+            FROM billing_customers c
+            LEFT JOIN billing_packages p ON c.package_id = p.id
+            WHERE c.id = %s AND c.deleted_at IS NULL
+        """, (customer_id,))
+        
+        if customer:
+            # Format date untuk frontend
+            customer[0]['install_date_formatted'] = customer[0]['install_date'].strftime('%Y-%m-%d') if customer[0]['install_date'] else ''
+        
+        return jsonify(customer[0] if customer else {})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/billing/customers/add', methods=['POST'])
+@login_required
+def api_add_billing_customer():
+    """Add new billing customer - DIPERBARUI DENGAN FIELD BARU"""
+    try:
+        data = get_request_data()
+        print(f"DEBUG: Adding customer with data: {data}")
+        
+        # Validasi data yang required
+        if not data.get('install_date'):
+            return jsonify({'success': False, 'error': 'Tanggal instalasi wajib diisi'})
+        
+        if not data.get('due_day') or int(data['due_day']) < 1 or int(data['due_day']) > 31:
+            return jsonify({'success': False, 'error': 'Tanggal jatuh tempo harus antara 1-31'})
+        
+        # Handle file upload
+        photo_path = None
+        if 'photo' in request.files:
+            file = request.files['photo']
+            if file and file.filename != '' and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                # Create directory if not exists
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(file_path)
+                photo_path = file_path
+                print(f"DEBUG: File saved to {photo_path}")
+        
+        execute_query("""
+            INSERT INTO billing_customers 
+            (full_name, email, phone, address, package_id, status, notes, 
+             install_date, due_day, lat, lng, technician_notes, photo_path)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data['full_name'], 
+            data.get('email', ''), 
+            data.get('phone', ''), 
+            data.get('address', ''), 
+            data['package_id'],
+            data.get('status', 'active'),
+            data.get('notes', ''),
+            data.get('install_date'),  # TAMBAHAN
+            data.get('due_day', 1),    # TAMBAHAN
+            data.get('lat'),           # TAMBAHAN
+            data.get('lng'),           # TAMBAHAN
+            data.get('technician_notes', ''),  # TAMBAHAN
+            photo_path  # TAMBAHAN - photo path
+        ), fetch=False)
+        
+        return jsonify({'success': True, 'message': 'Customer added successfully'})
+    except Exception as e:
+        print(f"DEBUG: Error adding customer: {str(e)}")
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/billing/customers/update/<int:customer_id>', methods=['PUT'])
+@login_required
+def api_update_billing_customer(customer_id):
+    """Update billing customer - DIPERBARUI DENGAN FIELD BARU"""
+    try:
+        # Handle form data dengan file upload
+        data = request.form.to_dict()
+        print(f"DEBUG: Updating customer {customer_id} with data: {data}")
+        
+        # Validasi due_day
+        if data.get('due_day') and (int(data['due_day']) < 1 or int(data['due_day']) > 31):
+            return jsonify({'success': False, 'error': 'Tanggal jatuh tempo harus antara 1-31'})
+        
+        # Handle empty values for database
+        install_date = data.get('install_date') if data.get('install_date') else None
+        due_day = data.get('due_day', 1)
+        lat = data.get('lat') if data.get('lat') else None
+        lng = data.get('lng') if data.get('lng') else None
+        
+        # Handle file upload
+        photo_path = None
+        if 'photo' in request.files:
+            file = request.files['photo']
+            if file and file.filename != '' and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                # Create directory if not exists
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(file_path)
+                photo_path = file_path
+                print(f"DEBUG: File saved to {photo_path}")
+        
+        # Jika ada file upload, update photo_path juga
+        if photo_path:
+            execute_query("""
+                UPDATE billing_customers 
+                SET full_name = %s, email = %s, phone = %s, address = %s, 
+                    package_id = %s, status = %s, notes = %s,
+                    install_date = %s, due_day = %s, lat = %s, lng = %s, 
+                    technician_notes = %s, photo_path = %s
+                WHERE id = %s AND deleted_at IS NULL
+            """, (
+                data['full_name'], 
+                data.get('email', ''), 
+                data.get('phone', ''), 
+                data.get('address', ''), 
+                data['package_id'], 
+                data.get('status', 'active'),
+                data.get('notes', ''),
+                install_date,  # TAMBAHAN
+                due_day,       # TAMBAHAN  
+                lat,           # TAMBAHAN
+                lng,           # TAMBAHAN
+                data.get('technician_notes', ''),  # TAMBAHAN
+                photo_path,    # TAMBAHAN - photo path
+                customer_id
+            ), fetch=False)
+        else:
+            # Update tanpa mengubah photo_path
+            execute_query("""
+                UPDATE billing_customers 
+                SET full_name = %s, email = %s, phone = %s, address = %s, 
+                    package_id = %s, status = %s, notes = %s,
+                    install_date = %s, due_day = %s, lat = %s, lng = %s, 
+                    technician_notes = %s
+                WHERE id = %s AND deleted_at IS NULL
+            """, (
+                data['full_name'], 
+                data.get('email', ''), 
+                data.get('phone', ''), 
+                data.get('address', ''), 
+                data['package_id'], 
+                data.get('status', 'active'),
+                data.get('notes', ''),
+                install_date,  # TAMBAHAN
+                due_day,       # TAMBAHAN  
+                lat,           # TAMBAHAN
+                lng,           # TAMBAHAN
+                data.get('technician_notes', ''),  # TAMBAHAN
+                customer_id
+            ), fetch=False)
+        
+        return jsonify({'success': True, 'message': 'Customer updated successfully'})
+    except Exception as e:
+        print(f"DEBUG: Error updating customer: {str(e)}")
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/billing/customers/delete/<int:customer_id>', methods=['DELETE'])
+@login_required
+def api_delete_billing_customer(customer_id):
+    """Soft delete billing customer"""
+    try:
+        execute_query("""
+            UPDATE billing_customers SET deleted_at = CURRENT_TIMESTAMP 
+            WHERE id = %s AND deleted_at IS NULL
+        """, (customer_id,), fetch=False)
+        return jsonify({'success': True, 'message': 'Customer deleted successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# === MAP & COORDINATES API ===
+@app.route('/api/customers/map')
+@login_required
+def api_customers_map():
+    """Get customer locations for map"""
+    try:
+        customers = execute_query("""
+            SELECT id, full_name, lat, lng, address, status
+            FROM billing_customers 
+            WHERE deleted_at IS NULL 
+            AND lat IS NOT NULL 
+            AND lng IS NOT NULL
+        """)
+        return jsonify(customers)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/customers/<int:customer_id>/coordinates', methods=['PUT'])
+@login_required
+def api_update_customer_coordinates(customer_id):
+    """Update customer coordinates only"""
+    try:
+        data = get_request_data()
+        print(f"DEBUG: Updating coordinates for customer {customer_id}: {data}")
+        
+        execute_query("""
+            UPDATE billing_customers 
+            SET lat = %s, lng = %s
+            WHERE id = %s AND deleted_at IS NULL
+        """, (
+            data.get('lat'),
+            data.get('lng'),
+            customer_id
+        ), fetch=False)
+        
+        return jsonify({'success': True, 'message': 'Koordinat berhasil diperbarui'})
+    except Exception as e:
+        print(f"DEBUG: Error updating coordinates: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# === INVOICES API ===
+
+@app.route('/api/billing/invoices')
+@login_required
+def api_billing_invoices():
+    """Get all active invoices"""
+    try:
+        invoices = execute_query("""
+            SELECT i.*, c.full_name, c.email, p.name as package_name
+            FROM billing_invoices i
+            JOIN billing_customers c ON i.customer_id = c.id
+            JOIN billing_packages p ON i.package_id = p.id
+            WHERE i.deleted_at IS NULL
+            ORDER BY i.created_at DESC
+        """)
+        return jsonify(invoices)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/billing/invoices/generate', methods=['POST'])
+@login_required
+def api_generate_invoices():
+    """Generate monthly invoices for active customers"""
+    try:
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        
+        # Generate invoices for active customers
+        result = execute_query("""
+            INSERT INTO billing_invoices (customer_id, package_id, period_month, period_year, amount, due_date)
+            SELECT 
+                c.id,
+                c.package_id,
+                %s, %s,
+                p.price_monthly,
+                CURRENT_DATE + INTERVAL '7 days'
+            FROM billing_customers c
+            JOIN billing_packages p ON c.package_id = p.id
+            WHERE c.status = 'active' 
+            AND c.deleted_at IS NULL
+            AND p.deleted_at IS NULL
+            AND NOT EXISTS (
+                SELECT 1 FROM billing_invoices i 
+                WHERE i.customer_id = c.id 
+                AND i.period_month = %s 
+                AND i.period_year = %s
+                AND i.deleted_at IS NULL
+            )
+        """, (current_month, current_year, current_month, current_year), fetch=False)
+        
+        return jsonify({'success': True, 'message': 'Invoices generated successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# === INVOICE PAYMENT ROUTE ===
+@app.route('/api/billing/invoices/pay/<int:invoice_id>', methods=['POST'])
+@login_required
+def api_pay_invoice(invoice_id):
+    """Mark invoice as paid and record payment"""
+    try:
+        data = get_request_data()
+        
+        # Cek apakah invoice exists
+        invoice = execute_query("""
+            SELECT i.*, c.full_name, p.name as package_name, p.price_monthly as amount
+            FROM billing_invoices i
+            JOIN billing_customers c ON i.customer_id = c.id
+            JOIN billing_packages p ON i.package_id = p.id
+            WHERE i.id = %s AND i.deleted_at IS NULL
+        """, (invoice_id,))
+        
+        if not invoice:
+            return jsonify({'success': False, 'error': 'Invoice tidak ditemukan'}), 404
+        
+        invoice_data = invoice[0]
+        
+        # Record payment
+        execute_query("""
+            INSERT INTO billing_payments 
+            (invoice_id, payment_method, amount, reference_number, notes, payment_date)
+            VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+        """, (
+            invoice_id,
+            data.get('payment_method', 'cash'),
+            invoice_data['amount'],
+            data.get('reference_number', ''),
+            data.get('notes', 'Pembayaran invoice')
+        ), fetch=False)
+        
+        # Update invoice status to paid (tanpa paid_at)
+        execute_query("""
+            UPDATE billing_invoices 
+            SET status = 'paid'
+            WHERE id = %s AND deleted_at IS NULL
+        """, (invoice_id,), fetch=False)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Invoice berhasil dibayar'
+        })
+        
+    except Exception as e:
+        print(f"DEBUG: Error paying invoice: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# === INVOICE TEMPLATE PAGE ===
+@app.route('/billing/invoice/<int:invoice_id>')
+@login_required
+def invoice_detail_page(invoice_id):
+    """Halaman template invoice dengan data dinamis"""
+    try:
+        # Ambil data invoice dari database
+        invoice = execute_query("""
+            SELECT i.*, c.full_name, c.email, c.phone, c.address, 
+                   p.name as package_name, p.price_monthly as amount,
+                   p.bandwidth_limit
+            FROM billing_invoices i
+            JOIN billing_customers c ON i.customer_id = c.id
+            JOIN billing_packages p ON i.package_id = p.id
+            WHERE i.id = %s AND i.deleted_at IS NULL
+        """, (invoice_id,))
+        
+        if not invoice:
+            flash('Invoice tidak ditemukan', 'error')
+            return redirect(url_for('billing_invoices'))
+        
+        invoice_data = invoice[0]
+        
+        # Format data untuk template
+        # PERBAIKI TYPE CONVERSION DI SINI:
+        amount = float(invoice_data['amount'])  # Convert Decimal to float
+        tax_amount = int(amount * 0.11)  # 11% PPN
+        total_amount = int(amount * 1.11)
+
+# Format data untuk template
+        context = {
+            'invoice': invoice_data,
+            'invoice_number': invoice_data.get('invoice_number', f'INV-{invoice_id:06d}'),
+            'customer_name': invoice_data['full_name'],
+            'customer_email': invoice_data.get('email', ''),
+            'customer_phone': invoice_data.get('phone', ''),
+            'customer_address': invoice_data.get('address', ''),
+            'package_name': invoice_data['package_name'],
+            'bandwidth_limit': invoice_data.get('bandwidth_limit', '50 Mbps'),
+            'amount': amount,
+            'tax_amount': tax_amount,
+            'total_amount': total_amount,
+            'invoice_date': invoice_data.get('created_at', datetime.now()).strftime('%d %B %Y'),
+            'due_date': invoice_data.get('due_date', datetime.now()).strftime('%d %B %Y'),
+            'period_month': invoice_data.get('period_month', datetime.now().month),
+            'period_year': invoice_data.get('period_year', datetime.now().year)
+}
+        
+        return render_template('billing/invoice_template.html', **context)
+        
+    except Exception as e:
+        print(f"DEBUG: Error loading invoice: {str(e)}")
+        flash('Error memuat invoice', 'error')
+        return redirect(url_for('billing_invoices'))
+
+@app.route('/api/billing/invoices/update-status/<int:invoice_id>', methods=['PUT'])
+@login_required
+def api_update_invoice_status(invoice_id):
+    """Update invoice status"""
+    try:
+        data = get_request_data()
+        execute_query("""
+            UPDATE billing_invoices 
+            SET status = %s
+            WHERE id = %s AND deleted_at IS NULL
+        """, (data['status'], invoice_id), fetch=False)
+        return jsonify({'success': True, 'message': 'Invoice status updated successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# === PAYMENTS API ===
+
+@app.route('/api/billing/payments')
+@login_required
+def api_billing_payments():
+    """Get all active payments"""
+    try:
+        payments = execute_query("""
+            SELECT 
+                p.id,
+                p.invoice_id,
+                p.amount,
+                p.payment_method,
+                p.reference_number,
+                p.notes,
+                p.payment_date,
+                p.created_at,
+                p.updated_at,
+                i.invoice_number,
+                c.full_name as customer_name
+            FROM billing_payments p
+            JOIN billing_invoices i ON p.invoice_id = i.id
+            JOIN billing_customers c ON i.customer_id = c.id
+            WHERE p.deleted_at IS NULL
+            ORDER BY p.payment_date DESC
+        """)
+        
+        # Transform data untuk frontend
+        transformed_payments = []
+        for payment in payments:
+            transformed_payments.append({
+                'id': payment['id'],
+                'invoice_id': payment['invoice_id'],
+                'amount': payment['amount'],
+                'method': payment['payment_method'],  # Ubah payment_method jadi method
+                'reference_number': payment['reference_number'],
+                'notes': payment['notes'],
+                'payment_date': payment['payment_date'],
+                'invoice_number': payment['invoice_number'],
+                'customer_name': payment['customer_name']  # Sudah pakai alias
+            })
+        
+        return jsonify(transformed_payments)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/billing/payments/add', methods=['POST'])
+@login_required
+def api_add_billing_payment():
+    """Add new payment - alternatif untuk payments/record"""
+    try:
+        data = get_request_data()
+        
+        # Validasi
+        if not data.get('invoice_id') or not data.get('amount'):
+            return jsonify({'success': False, 'error': 'Invoice ID dan amount wajib diisi'})
+        
+        execute_query("""
+            INSERT INTO billing_payments (invoice_id, payment_method, amount, reference_number, notes)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (
+            data['invoice_id'],
+            data.get('payment_method', 'cash'),
+            data['amount'],
+            data.get('reference_number', ''),
+            data.get('notes', '')
+        ), fetch=False)
+        
+        # Update invoice status
+        execute_query("""
+            UPDATE billing_invoices 
+            SET status = 'paid'
+            WHERE id = %s AND amount <= %s AND deleted_at IS NULL
+        """, (data['invoice_id'], data['amount']), fetch=False)
+        
+        return jsonify({'success': True, 'message': 'Payment recorded successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# === CUSTOMER SEARCH API ===
+@app.route('/api/billing/customers/search')
+@login_required
+def api_search_customers():
+    """Search customers dengan berbagai filter"""
+    try:
+        search = request.args.get('search', '')
+        status = request.args.get('status', '')
+        package_id = request.args.get('package_id', '')
+        
+        query = """
+            SELECT c.*, p.name as package_name 
+            FROM billing_customers c
+            LEFT JOIN billing_packages p ON c.package_id = p.id
+            WHERE c.deleted_at IS NULL
+        """
+        params = []
+        
+        if search:
+            query += " AND (c.full_name ILIKE %s OR c.email ILIKE %s OR c.phone ILIKE %s)"
+            params.extend([f'%{search}%', f'%{search}%', f'%{search}%'])
+        
+        if status:
+            query += " AND c.status = %s"
+            params.append(status)
+            
+        if package_id:
+            query += " AND c.package_id = %s"
+            params.append(package_id)
+            
+        query += " ORDER BY c.full_name"
+        
+        customers = execute_query(query, params)
+        return jsonify(customers)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# === INIT DB ===
+
+@app.route('/api/billing/init-db', methods=['POST'])
+@login_required
+def api_init_billing_db():
+    """Initialize billing database tables"""
+    try:
+        # Tables sudah dibuat via SQL script, jadi return success
+        return jsonify({'success': True, 'message': 'Billing database already initialized'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # === AUTHENTICATION ROUTES ===
@@ -96,7 +1333,7 @@ def profile_page():
 @login_required
 def api_change_password():
     try:
-        data = request.get_json()
+        data = get_request_data()
         current_password = data['current_password']
         new_password = data['new_password']
         
@@ -148,6 +1385,20 @@ def logs_page():
     return render_template('logs.html')
 
 
+@app.route('/mikrotik')
+@login_required
+def mikrotik_monitoring():
+    nas_devices = get_nas_devices()
+    return render_template('mikrotik_simple.html', nas_devices=nas_devices)
+
+
+@app.route('/mikrotik-simple')
+@login_required
+def mikrotik_monitoring_simple():
+    nas_devices = get_nas_devices()
+    return render_template('mikrotik_simple.html', nas_devices=nas_devices)
+
+
 # === API ROUTES ===
 @app.route('/api/stats')
 def api_stats():
@@ -156,7 +1407,6 @@ def api_stats():
         active_sessions = execute_query("SELECT COUNT(*) as count FROM radacct WHERE acctstoptime IS NULL")[0]['count']
         today_auth = execute_query("SELECT COUNT(*) as count FROM radpostauth WHERE DATE(authdate) = CURRENT_DATE")[0]['count']
 
-        # Handle NAS count
         try:
             total_nas = execute_query("SELECT COUNT(*) as count FROM nas")[0]['count']
         except:
@@ -186,9 +1436,8 @@ def api_nas():
 @app.route('/api/nas/add', methods=['POST'])
 def api_add_nas():
     try:
-        data = request.get_json()
+        data = get_request_data()
 
-        # Check if NAS table has the new columns
         try:
             execute_query("SELECT limit_proxy_state, require_ma FROM nas LIMIT 1")
             execute_query("""
@@ -249,17 +1498,15 @@ def api_users():
 @app.route('/api/users/add', methods=['POST'])
 def api_add_user():
     try:
-        data = request.get_json()
-        print(f"🟢 DEBUG: Starting to add user: {data['username']}")  # ✅ DEBUG
+        data = get_request_data()
+        print(f"DEBUG: Starting to add user: {data['username']}")
 
-        # Add to radcheck - Password
         execute_query("""
             INSERT INTO radcheck (username, attribute, op, value)
             VALUES (%s, 'Cleartext-Password', ':=', %s)
         """, (data['username'], data['password']), fetch=False)
-        print(f"🟢 DEBUG: radcheck inserted for {data['username']}")  # ✅ DEBUG
+        print(f"DEBUG: radcheck inserted for {data['username']}")
 
-        # Add PPPoE attributes to radreply
         ppp_attributes = [
             ('Framed-Protocol', ':=', 'PPP'),
             ('Service-Type', ':=', 'Framed-User'),
@@ -270,59 +1517,53 @@ def api_add_user():
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, %s, %s, %s)
             """, (data['username'], attr, op, value), fetch=False)
-        print(f"🟢 DEBUG: PPP attributes added for {data['username']}")  # ✅ DEBUG
+        print(f"DEBUG: PPP attributes added for {data['username']}")
 
-        # Add IP address if provided
         if data.get('ip_address'):
             execute_query("""
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Framed-IP-Address', ':=', %s)
             """, (data['username'], data['ip_address']), fetch=False)
-            print(f"🟢 DEBUG: IP address {data['ip_address']} added")  # ✅ DEBUG
+            print(f"DEBUG: IP address {data['ip_address']} added")
 
-        # Add rate limit if provided
         if data.get('rate_limit'):
             execute_query("""
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Mikrotik-Rate-Limit', ':=', %s)
             """, (data['username'], data['rate_limit']), fetch=False)
-            print(f"🟢 DEBUG: Rate limit {data['rate_limit']} added")  # ✅ DEBUG
+            print(f"DEBUG: Rate limit {data['rate_limit']} added")
 
-        # Add session timeout if provided
         if data.get('session_timeout'):
             execute_query("""
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Session-Timeout', ':=', %s)
             """, (data['username'], data['session_timeout']), fetch=False)
 
-        # Add idle timeout if provided
         if data.get('idle_timeout'):
             execute_query("""
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Idle-Timeout', ':=', %s)
             """, (data['username'], data['idle_timeout']), fetch=False)
 
-        # Add data limit if provided
         if data.get('data_limit'):
             execute_query("""
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Mikrotik-Total-Limit', ':=', %s)
             """, (data['username'], data['data_limit']), fetch=False)
 
-        print(f"🟢 DEBUG: User {data['username']} added SUCCESSFULLY")  # ✅ DEBUG
+        print(f"DEBUG: User {data['username']} added SUCCESSFULLY")
         return jsonify({'success': True, 'message': 'User added successfully with all attributes'})
     except Exception as e:
-        print(f"🔴 DEBUG: ERROR adding user: {str(e)}")  # ✅ DEBUG
+        print(f"DEBUG: ERROR adding user: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/users/update/<username>', methods=['PUT'])
 def api_update_user(username):
     try:
-        data = request.get_json()
-        print(f"🟢 DEBUG: Starting to update user: {username}")  # ✅ DEBUG
+        data = get_request_data()
+        print(f"DEBUG: Starting to update user: {username}")
 
-        # Update IP address jika provided
         if data.get('ip_address'):
             execute_query("""
                 DELETE FROM radreply 
@@ -332,9 +1573,8 @@ def api_update_user(username):
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Framed-IP-Address', ':=', %s)
             """, (username, data['ip_address']), fetch=False)
-            print(f"🟢 DEBUG: IP address updated to {data['ip_address']}")  # ✅ DEBUG
+            print(f"DEBUG: IP address updated to {data['ip_address']}")
 
-        # Update rate limit jika provided
         if data.get('rate_limit'):
             execute_query("""
                 DELETE FROM radreply 
@@ -344,9 +1584,8 @@ def api_update_user(username):
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Mikrotik-Rate-Limit', ':=', %s)
             """, (username, data['rate_limit']), fetch=False)
-            print(f"🟢 DEBUG: Rate limit updated to {data['rate_limit']}")  # ✅ DEBUG
+            print(f"DEBUG: Rate limit updated to {data['rate_limit']}")
 
-        # Update session timeout jika provided
         if data.get('session_timeout'):
             execute_query("""
                 DELETE FROM radreply 
@@ -357,7 +1596,6 @@ def api_update_user(username):
                 VALUES (%s, 'Session-Timeout', ':=', %s)
             """, (username, data['session_timeout']), fetch=False)
 
-        # Update idle timeout jika provided
         if data.get('idle_timeout'):
             execute_query("""
                 DELETE FROM radreply 
@@ -368,7 +1606,6 @@ def api_update_user(username):
                 VALUES (%s, 'Idle-Timeout', ':=', %s)
             """, (username, data['idle_timeout']), fetch=False)
 
-        # Update data limit jika provided
         if data.get('data_limit'):
             execute_query("""
                 DELETE FROM radreply 
@@ -379,10 +1616,10 @@ def api_update_user(username):
                 VALUES (%s, 'Mikrotik-Total-Limit', ':=', %s)
             """, (username, data['data_limit']), fetch=False)
 
-        print(f"🟢 DEBUG: User {username} updated SUCCESSFULLY")  # ✅ DEBUG
+        print(f"DEBUG: User {username} updated SUCCESSFULLY")
         return jsonify({'success': True, 'message': 'User updated successfully'})
     except Exception as e:
-        print(f"🔴 DEBUG: ERROR updating user: {str(e)}")  # ✅ DEBUG
+        print(f"DEBUG: ERROR updating user: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -433,6 +1670,173 @@ def api_logs():
         return jsonify(logs)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# === MIKROTIK CREDENTIAL MANAGEMENT ===
+@app.route('/api/mikrotik/credentials', methods=['POST'])
+@login_required
+def api_save_mikrotik_credentials():
+    try:
+        data = get_request_data()
+        nas_id = data['nas_id']
+        username = data['username']
+        password = data['password']
+        port = data.get('port', 8728)
+        
+        success = save_mikrotik_credentials_db(nas_id, username, password, port)
+        
+        if success:
+            session_key = f'mikrotik_creds_{nas_id}'
+            session[session_key] = {
+                'username': username,
+                'password': password,
+                'port': port
+            }
+            
+            print(f"DEBUG: Credentials saved for NAS {nas_id}: user={username}, port={port}")
+            return jsonify({'success': True, 'message': 'Credentials saved successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to save credentials to database'}), 500
+            
+    except Exception as e:
+        print(f"DEBUG: Error saving credentials: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mikrotik/credentials/<int:nas_id>')
+@login_required
+def api_get_mikrotik_credentials(nas_id):
+    try:
+        session_key = f'mikrotik_creds_{nas_id}'
+        creds = session.get(session_key, {})
+        
+        if not creds.get('username') or not creds.get('password'):
+            db_creds = get_mikrotik_credentials_db(nas_id)
+            if db_creds:
+                creds = {
+                    'username': db_creds['username'],
+                    'password': db_creds['password'],
+                    'port': db_creds['port']
+                }
+                session[session_key] = creds
+        
+        print(f"DEBUG: Retrieved credentials for NAS {nas_id}: {creds}")
+        return jsonify(creds)
+    except Exception as e:
+        print(f"DEBUG: Error getting credentials: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# === MIKROTIK MONITORING API ROUTES (Original - untuk kompatibilitas) ===
+@app.route('/api/mikrotik/<int:nas_id>/monitoring')
+@login_required
+def mikrotik_monitoring_api(nas_id):
+    try:
+        print(f"DEBUG: Starting MikroTik monitoring for NAS ID: {nas_id}")
+        
+        nas = get_nas_by_id(nas_id)
+        
+        if not nas:
+            print("DEBUG: NAS device not found")
+            return jsonify({'success': False, 'error': 'NAS device not found'}), 404
+        
+        session_key = f'mikrotik_creds_{nas_id}'
+        creds = session.get(session_key, {})
+        
+        mikrotik_ip = nas['nasname']
+        mikrotik_username = creds.get('username', 'admin')
+        mikrotik_password = creds.get('password', '')
+        mikrotik_port = creds.get('port', 8728)
+        
+        print(f"DEBUG: Connecting to {mikrotik_ip} with user {mikrotik_username}")
+        
+        if not mikrotik_password:
+            print("DEBUG: No password configured")
+            return jsonify({'success': False, 'error': 'MikroTik credentials not configured. Please set username and password.'}), 400
+        
+        try:
+            connection = routeros_api.RouterOsApiPool(
+                mikrotik_ip,
+                username=mikrotik_username,
+                password=mikrotik_password,
+                port=mikrotik_port,
+                plaintext_login=True,
+                use_ssl=False
+            )
+            api = connection.get_api()
+            print("DEBUG: Successfully connected to MikroTik")
+        except Exception as conn_error:
+            print(f"DEBUG: Connection failed: {str(conn_error)}")
+            return jsonify({'success': False, 'error': f'Connection failed: {str(conn_error)}'}), 500
+        
+        try:
+            system_resource = api.get_resource('/system/resource')
+            system_info = system_resource.get()
+            print("DEBUG: Got system resource")
+            
+            interface_resource = api.get_resource('/interface')
+            interfaces = interface_resource.get()
+            print("DEBUG: Got interfaces")
+            
+            identity_resource = api.get_resource('/system/identity')
+            identity = identity_resource.get()
+            print("DEBUG: Got identity")
+            
+        except Exception as data_error:
+            print(f"DEBUG: Data retrieval failed: {str(data_error)}")
+            connection.disconnect()
+            return jsonify({'success': False, 'error': f'Data retrieval failed: {str(data_error)}'}), 500
+        
+        # Hitung disk sebelum disconnect
+        disk_usb, disk_flash = calculate_disk_usage(api)
+        
+        connection.disconnect()
+        print("DEBUG: Disconnected from MikroTik")
+        
+        processed_interfaces = []
+        for iface in interfaces[:10]:
+            name = iface.get('name', '')
+            if name.startswith(('ppp-', 'ovpn-')):
+                continue
+                
+            processed_interfaces.append({
+                'name': name,
+                'type': iface.get('type', 'N/A'),
+                'running': iface.get('running', 'false') == 'true',
+                'rx_rate': format_rate(iface.get('rx-rate', '0')),
+                'tx_rate': format_rate(iface.get('tx-rate', '0')),
+                'rx_total': format_bytes(iface.get('rx-byte', '0')),
+                'tx_total': format_bytes(iface.get('tx-byte', '0'))
+            })
+        
+        monitoring_data = {
+            'success': True,
+            'system': {
+                'hostname': identity[0].get('name', 'Unknown') if identity else 'Unknown',
+                'version': system_info[0].get('version', 'N/A') if system_info else 'N/A',
+                'uptime': system_info[0].get('uptime', 'N/A') if system_info else 'N/A',
+                'board': system_info[0].get('board-name', 'N/A') if system_info else 'N/A',
+            },
+            'resources': {
+                'cpu': system_info[0].get('cpu-load', '0') if system_info else '0',
+                'memory': str(calculate_memory_usage(system_info)),
+                'disk_usb': str(disk_usb),
+                'disk_flash': str(disk_flash)
+            },
+            'interfaces': processed_interfaces
+        }
+        
+        print("DEBUG: Successfully prepared monitoring data")
+        return jsonify(monitoring_data)
+        
+    except RouterOsApiConnectionError as e:
+        print(f"DEBUG: RouterOS API Connection Error: {str(e)}")
+        return jsonify({'success': False, 'error': f'Cannot connect to MikroTik device. Check IP address and network connectivity.'}), 500
+    except RouterOsApiCommunicationError as e:
+        print(f"DEBUG: RouterOS API Communication Error: {str(e)}")
+        return jsonify({'success': False, 'error': f'Authentication failed. Check username and password.'}), 401
+    except Exception as e:
+        print(f"DEBUG: Unexpected error: {str(e)}")
+        return jsonify({'success': False, 'error': f'Unexpected error: {str(e)}'}), 500
 
 
 @app.route('/health')

@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block title %}Laporan Keuangan - RADIUS Dashboard{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Laporan Keuangan</h1>
+            <p class="text-gray-600">Analisis dan statistik performa billing</p>
+        </div>
+        <div class="mt-4 md:mt-0 flex space-x-4">
+            <button onclick="loadReports()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                <i class="fas fa-refresh mr-2"></i>Refresh Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Total Pendapatan</p>
+                    <p id="totalRevenue" class="text-2xl font-bold text-green-600">Rp 0</p>
+                </div>
+                <i class="fas fa-money-bill-wave text-3xl text-green-600"></i>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Bulan Ini</p>
+                    <p id="monthlyRevenue" class="text-2xl font-bold text-blue-600">Rp 0</p>
+                </div>
+                <i class="fas fa-calendar-alt text-3xl text-blue-600"></i>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Invoice Tertunggak</p>
+                    <p id="unpaidCount" class="text-2xl font-bold text-red-600">0</p>
+                </div>
+                <i class="fas fa-exclamation-triangle text-3xl text-red-600"></i>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Pelanggan Aktif</p>
+                    <p id="activeCustomers" class="text-2xl font-bold text-purple-600">0</p>
+                </div>
+                <i class="fas fa-users text-3xl text-purple-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Revenue Chart -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold mb-4">Trend Pendapatan (6 Bulan Terakhir)</h3>
+            <canvas id="revenueChart" height="250"></canvas>
+        </div>
+
+        <!-- Package Performance -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold mb-4">Performa Paket</h3>
+            <div id="packagePerformance" class="space-y-3">
+                <p class="text-gray-500 text-center py-4">Loading data...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Methods -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <h3 class="text-lg font-semibold mb-4">Metode Pembayaran</h3>
+        <div id="paymentMethods" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <p class="text-gray-500 text-center py-4">Loading data...</p>
+        </div>
+    </div>
+
+    <!-- Monthly Details -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold mb-4">Detail Bulanan</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bulan/Tahun</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Invoice</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Pendapatan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lunas</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tertunggak</th>
+                    </tr>
+                </thead>
+                <tbody id="monthlyDetails" class="bg-white divide-y divide-gray-200">
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Load jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Load Report Data
+function loadReports() {
+    showNotification('Memuat data laporan...', 'info');
+    
+    $.get('/api/billing/reports/summary')
+    .done(function(data) {
+        console.log('Reports data loaded:', data);
+        updateDashboardCards(data);
+        createRevenueChart(data.monthly_income);
+        updatePackagePerformance(data.package_performance);
+        updatePaymentMethods(data.payment_methods);
+        updateMonthlyDetails(data.monthly_income);
+        showNotification('Data laporan berhasil dimuat', 'success');
+    })
+    .fail(function(xhr, status, error) {
+        console.error('Error loading reports:', error);
+        showNotification('Gagal memuat data laporan: ' + error, 'error');
+    });
+}
+
+function updateDashboardCards(data) {
+    let totalRevenue = 0;
+    let monthlyRevenue = 0;
+    let unpaidCount = 0;
+    let activeCustomers = 0;
+
+    // Calculate from monthly income
+    if (data.monthly_income && data.monthly_income.length > 0) {
+        monthlyRevenue = parseFloat(data.monthly_income[0].paid_amount || 0);
+        
+        data.monthly_income.forEach(month => {
+            totalRevenue += parseFloat(month.paid_amount || 0);
+            if (parseFloat(month.pending_amount || 0) > 0) {
+                unpaidCount += parseInt(month.invoice_count || 0);
+            }
+        });
+    }
+
+    // Calculate active customers from package performance
+    if (data.package_performance) {
+        data.package_performance.forEach(pkg => {
+            activeCustomers += parseInt(pkg.customer_count || 0);
+        });
+    }
+
+    // Update cards
+    $('#totalRevenue').text('Rp ' + Math.round(totalRevenue).toLocaleString('id-ID'));
+    $('#monthlyRevenue').text('Rp ' + Math.round(monthlyRevenue).toLocaleString('id-ID'));
+    $('#unpaidCount').text(unpaidCount);
+    $('#activeCustomers').text(activeCustomers);
+}
+
+function createRevenueChart(monthlyData) {
+    if (!monthlyData || monthlyData.length === 0) {
+        $('#revenueChart').replaceWith('<p class="text-gray-500 text-center py-8">Tidak ada data pendapatan</p>');
+        return;
+    }
+    
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    const recentMonths = monthlyData.slice(0, 6).reverse();
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const labels = recentMonths.map(month => `${monthNames[month.month - 1]} ${month.year}`);
+    const revenueData = recentMonths.map(month => month.paid_amount || 0);
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Pendapatan (Rp)',
+                data: revenueData,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Rp ' + Math.round(context.parsed.y).toLocaleString('id-ID');
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'Rp ' + Math.round(value).toLocaleString('id-ID');
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updatePackagePerformance(packageData) {
+    if (!packageData || packageData.length === 0) {
+        $('#packagePerformance').html('<p class="text-gray-500 text-center py-4">Tidak ada data paket</p>');
+        return;
+    }
+    
+    let html = '';
+    packageData.forEach(pkg => {
+        const revenue = parseFloat(pkg.total_revenue || 0);
+        if (revenue > 0) {
+            html += `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="font-medium text-gray-800">${pkg.package_name}</p>
+                        <p class="text-sm text-gray-600">${pkg.customer_count || 0} pelanggan</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-green-600">Rp ${Math.round(revenue).toLocaleString('id-ID')}</p>
+                        <p class="text-sm text-gray-600">${pkg.invoice_count || 0} invoice</p>
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    $('#packagePerformance').html(html || '<p class="text-gray-500 text-center py-4">Belum ada pendapatan dari paket</p>');
+}
+
+function updatePaymentMethods(paymentData) {
+    if (!paymentData || paymentData.length === 0) {
+        $('#paymentMethods').html('<p class="text-gray-500 text-center py-4">Tidak ada data pembayaran</p>');
+        return;
+    }
+    
+    let html = '';
+    paymentData.forEach(method => {
+        const amount = parseFloat(method.total_amount || 0);
+        html += `
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                <p class="font-semibold text-gray-800 capitalize">${method.payment_method}</p>
+                <p class="text-2xl font-bold text-blue-600 mt-2">Rp ${Math.round(amount).toLocaleString('id-ID')}</p>
+                <p class="text-sm text-gray-600 mt-1">${method.transaction_count || 0} transaksi</p>
+            </div>
+        `;
+    });
+    
+    $('#paymentMethods').html(html);
+}
+
+function updateMonthlyDetails(monthlyData) {
+    if (!monthlyData || monthlyData.length === 0) {
+        $('#monthlyDetails').html('<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Tidak ada data bulanan</td></tr>');
+        return;
+    }
+    
+    let html = '';
+    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    
+    monthlyData.forEach(month => {
+        html += `
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    ${monthNames[month.month - 1]} ${month.year}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${month.invoice_count || 0}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    Rp ${Math.round(parseFloat(month.total_amount || 0)).toLocaleString('id-ID')}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                    Rp ${Math.round(parseFloat(month.paid_amount || 0)).toLocaleString('id-ID')}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                    Rp ${Math.round(parseFloat(month.pending_amount || 0)).toLocaleString('id-ID')}
+                </td>
+            </tr>
+        `;
+    });
+    
+    $('#monthlyDetails').html(html);
+}
+
+// Initialize when page loads
+$(document).ready(function() {
+    loadReports();
+});
+</script>
+{% endblock %}

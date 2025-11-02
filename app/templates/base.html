@@ -42,6 +42,16 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .nav-group {
+            margin-top: 1rem;
+        }
+        .nav-header {
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 0.5rem;
+        }
+        .sidebar.collapsed .nav-header {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -87,6 +97,44 @@
                     <i class="fas fa-file-alt"></i>
                     <span class="nav-text">Logs</span>
                 </a>
+
+                <!-- MikroTik Monitoring -->
+                <a href="/mikrotik" class="nav-item {% if request.path == '/mikrotik' %}active{% endif %}">
+                     <i class="fas fa-router"></i>
+                     <span class="nav-text">MikroTik Monitoring</span>
+                </a>
+
+                <!-- Billing System Menu -->
+                <div class="nav-group">
+                    <div class="nav-header text-blue-300 text-xs font-semibold uppercase tracking-wider px-4 py-2">
+                        Billing System
+                    </div>
+                    
+                    <a href="/billing/packages" class="nav-item {% if request.path.startswith('/billing/packages') %}active{% endif %}">
+                        <i class="fas fa-cubes"></i>
+                        <span class="nav-text">Paket & Layanan</span>
+                    </a>
+                    
+                    <a href="/billing/customers" class="nav-item {% if request.path.startswith('/billing/customers') %}active{% endif %}">
+                        <i class="fas fa-users"></i>
+                        <span class="nav-text">Pelanggan</span>
+                    </a>
+                    
+                    <a href="/billing/invoices" class="nav-item {% if request.path.startswith('/billing/invoices') %}active{% endif %}">
+                        <i class="fas fa-receipt"></i>
+                        <span class="nav-text">Tagihan & Invoice</span>
+                    </a>
+                    
+                    <a href="/billing/payments" class="nav-item {% if request.path.startswith('/billing/payments') %}active{% endif %}">
+                        <i class="fas fa-credit-card"></i>
+                        <span class="nav-text">Pembayaran</span>
+                    </a>
+                    
+                    <a href="/billing/reports" class="nav-item {% if request.path.startswith('/billing/reports') %}active{% endif %}">
+                        <i class="fas fa-chart-bar"></i>
+                        <span class="nav-text">Laporan Keuangan</span>
+                    </a>
+                </div>
                 
                 <!-- Profile Menu -->
                 <a href="/profile" class="nav-item {% if request.path == '/profile' %}active{% endif %}">
@@ -212,6 +260,23 @@
                 return { success: false, error: error.message };
             }
         };
+
+        // Initialize Billing Database
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-init billing database jika belum ada
+            setTimeout(() => {
+                fetch('/api/billing/init-db', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Billing database initialized');
+                        }
+                    })
+                    .catch(error => {
+                        console.log('Billing database already exists or error:', error);
+                    });
+            }, 1000);
+        });
     </script>
 
     {% block scripts %}{% endblock %}

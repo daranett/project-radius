@@ -1,0 +1,577 @@
+{% extends "base.html" %}
+
+{% block title %}MikroTik Monitoring - RADIUS Manager{% endblock %}
+
+{% block page_title %}MikroTik Monitoring{% endblock %}
+{% block page_subtitle %}Real-time device monitoring{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Control Panel -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Device Selection</h2>
+        <div class="flex flex-wrap gap-4 items-end">
+            <div class="flex-1 min-w-64">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select NAS Device</label>
+                <select id="nasSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Choose MikroTik Device --</option>
+                    {% for nas in nas_devices %}
+                    <option value="{{ nas.id }}" data-ip="{{ nas.nasname }}">{{ nas.shortname }} ({{ nas.nasname }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="configureDevice()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-cog mr-2"></i>Configure
+                </button>
+                <button onclick="testConnection()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-plug mr-2"></i>Test Connection
+                </button>
+                <button onclick="startMonitoring()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <i class="fas fa-play mr-2"></i>Start Monitor
+                </button>
+            </div>
+        </div>
+        
+        <!-- Connection Status -->
+        <div class="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle text-gray-500 mr-2"></i>
+                    <span id="connectionStatus" class="text-sm text-gray-700">Please select a device and configure credentials</span>
+                </div>
+                <div id="lastUpdate" class="text-sm text-gray-500"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div id="configModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">MikroTik Configuration</h3>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Selected Device</label>
+                    <p id="selectedDeviceInfo" class="text-gray-600 bg-gray-50 p-2 rounded text-sm">No device selected</p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">API Username</label>
+                    <input type="text" id="configUsername" placeholder="admin" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">Usually 'admin' for MikroTik devices</p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">API Password</label>
+                    <input type="password" id="configPassword" placeholder="Enter password" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">MikroTik admin password</p>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">API Port</label>
+                    <input type="number" id="configPort" value="8728" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">Default is 8728 for API, 8729 for SSL</p>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button onclick="hideConfigModal()" 
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="saveConfiguration()" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Save & Test
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="hidden text-center py-8">
+        <div class="inline-flex items-center px-6 py-3 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
+            <span class="text-gray-700 font-medium" id="loadingText">Connecting to device...</span>
+        </div>
+    </div>
+
+    <!-- Error Display -->
+    <div id="errorDisplay" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-red-500 mr-3 mt-0.5"></i>
+            <div class="flex-1">
+                <h4 class="text-red-800 font-medium" id="errorTitle">Connection Error</h4>
+                <p class="text-red-600 text-sm mt-1" id="errorDetail"></p>
+                <div class="mt-2 text-xs text-red-500">
+                    <p>Tips:</p>
+                    <ul class="list-disc list-inside ml-2">
+                        <li>Check if MikroTik device is reachable from this server</li>
+                        <li>Verify API service is enabled on MikroTik</li>
+                        <li>Confirm username and password are correct</li>
+                        <li>Ensure API port is not blocked by firewall</li>
+                    </ul>
+                </div>
+            </div>
+            <button onclick="hideError()" class="text-red-500 hover:text-red-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Monitoring Dashboard -->
+    <div id="monitoringDashboard" class="hidden space-y-6">
+        <!-- System Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- CPU Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">CPU Usage</h3>
+                    <i class="fas fa-microchip text-blue-500 text-xl"></i>
+                </div>
+                <div class="text-center py-4">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-50 rounded-full mb-3 relative">
+                        <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none"/>
+                            <circle id="cpuCircle" cx="50" cy="50" r="40" stroke="#3b82f6" stroke-width="8" 
+                                    fill="none" stroke-dasharray="251.2" stroke-dashoffset="251.2" 
+                                    style="transition: stroke-dashoffset 0.5s ease"/>
+                        </svg>
+                        <span id="cpuValue" class="absolute text-xl font-bold text-blue-800">0%</span>
+                    </div>
+                    <p class="text-sm text-gray-600">Processor Load</p>
+                </div>
+            </div>
+
+            <!-- Memory Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Memory Usage</h3>
+                    <i class="fas fa-memory text-green-500 text-xl"></i>
+                </div>
+                <div class="text-center py-4">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-green-50 rounded-full mb-3 relative">
+                        <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none"/>
+                            <circle id="memoryCircle" cx="50" cy="50" r="40" stroke="#10b981" stroke-width="8" 
+                                    fill="none" stroke-dasharray="251.2" stroke-dashoffset="251.2" 
+                                    style="transition: stroke-dashoffset 0.5s ease"/>
+                        </svg>
+                        <span id="memoryValue" class="absolute text-xl font-bold text-green-800">0%</span>
+                    </div>
+                    <p class="text-sm text-gray-600">RAM Utilization</p>
+                </div>
+            </div>
+
+            <!-- USB Storage Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">USB Storage</h3>
+                    <i class="fas fa-usb text-indigo-500 text-xl"></i>
+                </div>
+                <div class="text-center py-4">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-indigo-50 rounded-full mb-3 relative">
+                        <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none"/>
+                            <circle id="usbCircle" cx="50" cy="50" r="40" stroke="#6366f1" stroke-width="8" 
+                                    fill="none" stroke-dasharray="251.2" stroke-dashoffset="251.2" 
+                                    style="transition: stroke-dashoffset 0.5s ease"/>
+                        </svg>
+                        <span id="usbValue" class="absolute text-xl font-bold text-indigo-800">0%</span>
+                    </div>
+                    <p class="text-sm text-gray-600">230GB Total</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second Row: System Flash -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- System Flash Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">System Flash</h3>
+                    <i class="fas fa-microchip text-orange-500 text-xl"></i>
+                </div>
+                <div class="text-center py-4">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-orange-50 rounded-full mb-3 relative">
+                        <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none"/>
+                            <circle id="flashCircle" cx="50" cy="50" r="40" stroke="#f97316" stroke-width="8" 
+                                    fill="none" stroke-dasharray="251.2" stroke-dashoffset="251.2" 
+                                    style="transition: stroke-dashoffset 0.5s ease"/>
+                        </svg>
+                        <span id="flashValue" class="absolute text-xl font-bold text-orange-800">0%</span>
+                    </div>
+                    <p class="text-sm text-gray-600">128MB Total</p>
+                </div>
+            </div>
+
+            <!-- Placeholder untuk ekspansi masa depan -->
+            <div></div>
+            <div></div>
+        </div>
+
+        <!-- System Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-800">System Information</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="systemInfo">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Interface Statistics -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-800">Interface Statistics</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interface</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RX Rate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TX Rate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total RX</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total TX</th>
+                        </tr>
+                    </thead>
+                    <tbody id="interfaceTable" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
+                                No interface data available
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentNasId = null;
+let monitoringInterval = null;
+
+// Show configuration modal
+function configureDevice() {
+    const nasSelect = document.getElementById('nasSelect');
+    if (!nasSelect.value) {
+        showError('Selection Required', 'Please select a device first');
+        return;
+    }
+    
+    currentNasId = nasSelect.value;
+    const selectedOption = nasSelect.options[nasSelect.selectedIndex];
+    document.getElementById('selectedDeviceInfo').textContent = selectedOption.text;
+    
+    // Load saved credentials
+    loadSavedCredentials(currentNasId);
+    document.getElementById('configModal').classList.remove('hidden');
+}
+
+// Hide configuration modal
+function hideConfigModal() {
+    document.getElementById('configModal').classList.add('hidden');
+}
+
+// Load saved credentials
+function loadSavedCredentials(nasId) {
+    fetch(`/api/mikrotik/credentials/${nasId}`)
+        .then(response => response.json())
+        .then(creds => {
+            if (creds.username) {
+                document.getElementById('configUsername').value = creds.username;
+            }
+            if (creds.password) {
+                document.getElementById('configPassword').value = creds.password;
+            }
+            if (creds.port) {
+                document.getElementById('configPort').value = creds.port;
+            }
+        })
+        .catch(error => {
+            console.log('No saved credentials found');
+        });
+}
+
+// Save configuration
+function saveConfiguration() {
+    const username = document.getElementById('configUsername').value;
+    const password = document.getElementById('configPassword').value;
+    const port = document.getElementById('configPort').value;
+    
+    if (!username || !password) {
+        showError('Configuration Error', 'Please enter both username and password');
+        return;
+    }
+    
+    showLoading('Saving configuration...');
+    
+    fetch('/api/mikrotik/credentials', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            nas_id: currentNasId,
+            username: username,
+            password: password,
+            port: parseInt(port)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            showNotification('Configuration saved successfully', 'success');
+            hideConfigModal();
+            testConnection(); // Test connection after saving
+        } else {
+            showError('Save Failed', data.error);
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        showError('Save Failed', error.message);
+    });
+}
+
+// Test connection
+function testConnection() {
+    const nasId = document.getElementById('nasSelect').value;
+    if (!nasId) {
+        showError('Selection Required', 'Please select a device first');
+        return;
+    }
+    
+    showLoading('Testing connection...');
+    document.getElementById('connectionStatus').textContent = 'Testing connection...';
+    
+    fetch(`/api/mikrotik/${nasId}/monitoring`)
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                document.getElementById('connectionStatus').textContent = 'Connection successful! Ready to monitor.';
+                showNotification('Connection test successful!', 'success');
+            } else {
+                document.getElementById('connectionStatus').textContent = 'Connection failed';
+                showError('Connection Test Failed', data.error);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            document.getElementById('connectionStatus').textContent = 'Connection failed';
+            showError('Connection Test Failed', error.message);
+        });
+}
+
+// Start monitoring
+function startMonitoring() {
+    const nasId = document.getElementById('nasSelect').value;
+    if (!nasId) {
+        showError('Selection Required', 'Please select a device first');
+        return;
+    }
+    
+    currentNasId = nasId;
+    showLoading('Starting monitoring...');
+    
+    // Clear any existing interval
+    if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+    }
+    
+    // Load initial data
+    loadMonitoringData();
+    
+    // Set up auto-refresh every 5 seconds
+    monitoringInterval = setInterval(loadMonitoringData, 5000);
+    
+    document.getElementById('connectionStatus').textContent = 'Monitoring active - Auto-refresh every 5 seconds';
+}
+
+// Load monitoring data
+function loadMonitoringData() {
+    if (!currentNasId) return;
+    
+    fetch(`/api/mikrotik/${currentNasId}/monitoring/realtime`)
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            updateLastUpdate();
+            
+            if (!data.success) {
+                showError('Monitoring Error', data.error);
+                stopMonitoring();
+            } else {
+                document.getElementById('monitoringDashboard').classList.remove('hidden');
+                updateDashboard(data);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showError('Data Fetch Failed', error.message);
+            stopMonitoring();
+        });
+}
+
+// Stop monitoring
+function stopMonitoring() {
+    if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+        monitoringInterval = null;
+    }
+    document.getElementById('connectionStatus').textContent = 'Monitoring stopped';
+}
+
+// Update dashboard with data
+function updateDashboard(data) {
+    // Update resource circles
+    updateProgressCircle('cpu', data.resources.cpu);
+    updateProgressCircle('memory', data.resources.memory);
+    updateProgressCircle('usb', data.resources.disk_usb || 0);
+    updateProgressCircle('flash', data.resources.disk_flash || 0);
+    
+    // Update system information
+    updateSystemInfo(data.system);
+    
+    // Update interface table
+    updateInterfaceTable(data.interfaces);
+}
+
+// Update progress circle
+function updateProgressCircle(type, percent) {
+    const circle = document.getElementById(`${type}Circle`);
+    const value = document.getElementById(`${type}Value`);
+    
+    if (circle && value) {
+        const circumference = 251.2; // 2 * π * 40
+        const offset = circumference - (percent / 100) * circumference;
+        circle.style.strokeDashoffset = offset;
+        value.textContent = `${percent}%`;
+    }
+}
+
+// Update system information
+function updateSystemInfo(system) {
+    const systemInfo = document.getElementById('systemInfo');
+    systemInfo.innerHTML = `
+        <div class="text-center p-4 bg-blue-50 rounded-lg border border-blue-100">
+            <div class="text-lg font-bold text-blue-800">${system.hostname}</div>
+            <div class="text-sm text-blue-600 mt-1">Hostname</div>
+        </div>
+        <div class="text-center p-4 bg-green-50 rounded-lg border border-green-100">
+            <div class="text-lg font-bold text-green-800">${system.version}</div>
+            <div class="text-sm text-green-600 mt-1">RouterOS Version</div>
+        </div>
+        <div class="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-100">
+            <div class="text-lg font-bold text-yellow-800">${system.uptime}</div>
+            <div class="text-sm text-yellow-600 mt-1">Uptime</div>
+        </div>
+        <div class="text-center p-4 bg-purple-50 rounded-lg border border-purple-100">
+            <div class="text-lg font-bold text-purple-800">${system.board}</div>
+            <div class="text-sm text-purple-600 mt-1">Hardware</div>
+        </div>
+    `;
+}
+
+// Update interface table
+function updateInterfaceTable(interfaces) {
+    const tableBody = document.getElementById('interfaceTable');
+    
+    if (!interfaces || interfaces.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
+                    No active interfaces found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tableBody.innerHTML = interfaces.map(iface => `
+        <tr class="hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">${iface.name}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-500">${iface.type}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    iface.running ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }">
+                    <span class="w-2 h-2 rounded-full ${
+                        iface.running ? 'bg-green-400' : 'bg-red-400'
+                    } mr-1"></span>
+                    ${iface.running ? 'UP' : 'DOWN'}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900 font-medium">${iface.rx_rate}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900 font-medium">${iface.tx_rate}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-500">${iface.rx_total}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-500">${iface.tx_total}</div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Update last update time
+function updateLastUpdate() {
+    const now = new Date();
+    document.getElementById('lastUpdate').textContent = `Last: ${now.toLocaleTimeString()}`;
+}
+
+// Show loading indicator
+function showLoading(text = 'Loading...') {
+    document.getElementById('loadingText').textContent = text;
+    document.getElementById('loadingIndicator').classList.remove('hidden');
+}
+
+// Hide loading indicator
+function hideLoading() {
+    document.getElementById('loadingIndicator').classList.add('hidden');
+}
+
+// Show error message
+function showError(title, detail) {
+    document.getElementById('errorTitle').textContent = title;
+    document.getElementById('errorDetail').textContent = detail;
+    document.getElementById('errorDisplay').classList.remove('hidden');
+}
+
+// Hide error message
+function hideError() {
+    document.getElementById('errorDisplay').classList.add('hidden');
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    // Simple notification implementation
+    alert(`${type.toUpperCase()}: ${message}`);
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('MikroTik Monitoring page loaded');
+});
+</script>
+{% endblock %}
