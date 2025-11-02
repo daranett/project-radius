@@ -4,17 +4,19 @@ services:
     build: .
     container_name: radius-dashboard
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.radius.entrypoints=web"
-      - "traefik.http.routers.radius.rule=Host(`radius.access.daranett.com`)"
-      - "traefik.http.routers.radius.middlewares=https-redirect"
-      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.radius-secure.entrypoints=websecure"
-      - "traefik.http.routers.radius-secure.rule=Host(`radius.access.daranett.com`)"
-      - "traefik.http.routers.radius-secure.tls=true"
-      - "traefik.http.routers.radius-secure.service=radius"
-      - "traefik.http.services.radius.loadbalancer.server.port=5000"
+    ports:
+      - "5000:5000"  # TAMBAHKAN INI
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.radius.entrypoints=web"
+#      - "traefik.http.routers.radius.rule=Host(`radius.access.daranett.com`)"
+#      - "traefik.http.routers.radius.middlewares=https-redirect"
+#      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+#      - "traefik.http.routers.radius-secure.entrypoints=websecure"
+#      - "traefik.http.routers.radius-secure.rule=Host(`radius.access.daranett.com`)"
+#      - "traefik.http.routers.radius-secure.tls=true"
+#      - "traefik.http.routers.radius-secure.service=radius"
+#      - "traefik.http.services.radius.loadbalancer.server.port=5000"
     environment:
       - DB_HOST=freeradius-db
       - DB_NAME=radius
@@ -25,11 +27,57 @@ services:
     volumes:
       - ./app:/app
     networks:
-      - postgres-radius_radius-net  # Untuk konek ke DB
-      - my-net                        # Untuk Traefik
+      - radius-net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: freeradius-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: radius
+      POSTGRES_USER: radius
+      POSTGRES_PASSWORD: radiuspass
+      TZ: Asia/Jakarta
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+      - ./init.db:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - radius-net
+
+  freeradius:
+    image: freeradius/freeradius-server:latest
+    container_name: freeradius-server
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: radius
+      DB_USER: radius
+      DB_PASS: radiuspass
+      TZ: Asia/Jakarta
+#    network_mode: host
+    volumes:
+      - ./clients.conf:/etc/freeradius/clients.conf
+      - ./freeradius-config/mods-available/sql:/etc/freeradius/3.0/mods-available/sql
+#      - ./freeradius-config/mods-available/sql:/etc/freeradius/mods-available/sql  # ✅ PERBAIKI PATH
+      - ./freeradius-config/mods-enabled/sql:/etc/freeradius/mods-enabled/sql
+      - ./freeradius-config/sites-enabled/default:/etc/freeradius/sites-enabled/default
+#      - ./freeradius-config/queries.conf:/etc/freeradius/mods-config/sql/main/postgresql/queries.conf  
+    ports:
+      - "1812:1812/udp"
+      - "1813:1813/udp"
+    command: freeradius -X -l stdout
+    depends_on:
+      - postgres
+    networks:
+      - radius-net
 
 networks:
-  postgres-radius_radius-net:
-    external: true
-  my-net:
-    external: true
+  radius-net:
+    driver: bridge
+    # Jika ingin external, pastikan network sudah dibuat sebelumnya
+    # external: true
+    # name: radius-net

@@ -1,0 +1,21 @@
+sql {
+    dialect = "postgresql"
+    driver = "rlm_sql_postgresql"
+    server = "postgres"
+    port = 5432
+    login = "radius"
+    password = "radiuspass"
+    radius_db = "radius"
+
+    user_name_attribute = "User-Name"
+
+    acct_table1 = "radacct"
+    postauth_table = "radpostauth"
+
+    authorize_check_query = "SELECT id, username, attribute, value, op FROM radcheck WHERE username = '%{${user_name_attribute}}' ORDER BY id"
+    authorize_reply_query = "SELECT id, username, attribute, value, op FROM radreply WHERE username = '%{${user_name_attribute}}' ORDER BY id"
+    group_membership_query = "SELECT groupname FROM radusergroup WHERE username='%{${user_name_attribute}}'"
+
+    read_clients = yes
+    client_table = "nas"
+}
