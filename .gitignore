@@ -1,1 +1,13 @@
 data/
+data/
+logs/
+*.log
+__pycache__/
+*.pyc
+*.db
+*.pid
+*.env
+*.sqlite3
+venv/
+.env
+.DS_Store
