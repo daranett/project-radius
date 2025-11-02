@@ -40,7 +40,7 @@ services:
       TZ: Asia/Jakarta
     volumes:
       - ./data:/var/lib/postgresql/data
-      - ./init:/docker-entrypoint-initdb.d
+#      - ./init:/docker-entrypoint-initdb.d
       - ./init.db:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
