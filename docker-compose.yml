@@ -1,4 +1,3 @@
-# File: ~/radius-dashboard/docker-compose.yml
 services:
   radius-dashboard:
     build: .
@@ -24,10 +23,17 @@ services:
       - DB_PASSWORD=radiuspass
       - DB_PORT=5432
       - SECRET_KEY=05052020fAk@#
+      - REDIS_URL=redis://redis:6379/0
+      - FLASK_ENV=production
     volumes:
       - ./app:/app
+      - ./uploads:/app/static/uploads
+      - ./logs:/app/logs
     networks:
       - radius-net
+    depends_on:
+      - postgres
+      - redis
 
   postgres:
     image: postgres:15-alpine
@@ -38,14 +44,26 @@ services:
       POSTGRES_USER: radius
       POSTGRES_PASSWORD: radiuspass
       TZ: Asia/Jakarta
+      POSTGRES_INITDB_ARGS: "-E UTF8"
     volumes:
       - ./data:/var/lib/postgresql/data
-#      - ./init:/docker-entrypoint-initdb.d
       - ./init.db:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     networks:
       - radius-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: radius-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - radius-net
+    command: redis-server --appendonly yes
 
   freeradius:
     image: freeradius/freeradius-server:latest
@@ -62,10 +80,8 @@ services:
     volumes:
       - ./clients.conf:/etc/freeradius/clients.conf
       - ./freeradius-config/mods-available/sql:/etc/freeradius/3.0/mods-available/sql
-#      - ./freeradius-config/mods-available/sql:/etc/freeradius/mods-available/sql  # ✅ PERBAIKI PATH
       - ./freeradius-config/mods-enabled/sql:/etc/freeradius/mods-enabled/sql
       - ./freeradius-config/sites-enabled/default:/etc/freeradius/sites-enabled/default
-#      - ./freeradius-config/queries.conf:/etc/freeradius/mods-config/sql/main/postgresql/queries.conf  
     ports:
       - "1812:1812/udp"
       - "1813:1813/udp"
@@ -78,6 +94,9 @@ services:
 networks:
   radius-net:
     driver: bridge
-    # Jika ingin external, pastikan network sudah dibuat sebelumnya
-    # external: true
-    # name: radius-net
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
