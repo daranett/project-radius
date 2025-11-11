@@ -13,8 +13,15 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'radius-dashboard-secret-2024'
+app.config['SESSION_TYPE'] = 'filesystem'  # Gunakan filesystem session
+app.config['SESSION_PERMANENT'] = True  # Session persisten
+app.config['SESSION_COOKIE_SECURE'] = False  # Set True jika pakai HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config.from_object(Config)
-
+app.config['UPLOAD_FOLDER'] = 'static/uploads/customers'
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # Konfigurasi upload file
 app.config['UPLOAD_FOLDER'] = 'static/uploads/customers'
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB
@@ -187,6 +194,8 @@ def calculate_memory_usage(system_info):
 def save_mikrotik_credentials_db(nas_id, username, password, port=8728):
     """Save MikroTik credentials to database"""
     try:
+        print("  → Ensuring table exists...")
+        # Ensure table exists
         execute_query("""
             CREATE TABLE IF NOT EXISTS mikrotik_credentials (
                 id SERIAL PRIMARY KEY,
@@ -199,7 +208,10 @@ def save_mikrotik_credentials_db(nas_id, username, password, port=8728):
                 FOREIGN KEY (nas_id) REFERENCES nas(id) ON DELETE CASCADE
             )
         """, fetch=False)
+        print("  ✓ Table ready")
         
+        print(f"  → Inserting/updating credentials for NAS {nas_id}...")
+        # Insert or update
         execute_query("""
             INSERT INTO mikrotik_credentials (nas_id, username, password, port)
             VALUES (%s, %s, %s, %s)
@@ -211,15 +223,19 @@ def save_mikrotik_credentials_db(nas_id, username, password, port=8728):
                 updated_at = CURRENT_TIMESTAMP
         """, (nas_id, username, password, port), fetch=False)
         
-        print(f"DEBUG: Credentials saved to database for NAS {nas_id}")
+        print(f"  ✓ Database insert/update successful")
         return True
+        
     except Exception as e:
-        print(f"DEBUG: Error saving credentials to database: {str(e)}")
+        print(f"  ✗ Database error: {str(e)}")
+        print(traceback.format_exc())
         return False
+
 
 def get_mikrotik_credentials_db(nas_id):
     """Get MikroTik credentials from database"""
     try:
+        print(f"  → Querying database for NAS {nas_id}...")
         result = execute_query("""
             SELECT username, password, port 
             FROM mikrotik_credentials 
@@ -227,15 +243,36 @@ def get_mikrotik_credentials_db(nas_id):
         """, (nas_id,))
         
         if result:
-            print(f"DEBUG: Retrieved credentials from database for NAS {nas_id}")
+            print(f"  ✓ Found credentials in database")
             return result[0]
         else:
-            print(f"DEBUG: No credentials found in database for NAS {nas_id}")
+            print(f"  ✗ No credentials found in database")
             return None
+            
     except Exception as e:
-        print(f"DEBUG: Error getting credentials from database: {str(e)}")
+        print(f"  ✗ Database query error: {str(e)}")
+        
+        # If table doesn't exist, try to create it
+        if 'does not exist' in str(e):
+            print(f"  → Table doesn't exist, creating...")
+            try:
+                execute_query("""
+                    CREATE TABLE IF NOT EXISTS mikrotik_credentials (
+                        id SERIAL PRIMARY KEY,
+                        nas_id INTEGER NOT NULL UNIQUE,
+                        username VARCHAR(100) NOT NULL,
+                        password VARCHAR(255) NOT NULL,
+                        port INTEGER DEFAULT 8728,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (nas_id) REFERENCES nas(id) ON DELETE CASCADE
+                    )
+                """, fetch=False)
+                print(f"  ✓ Table created successfully")
+            except Exception as create_error:
+                print(f"  ✗ Error creating table: {str(create_error)}")
+        
         return None
-
 
 # === MIKROTIK MONITORING WITH HISTORY ===
 monitoring_history = {}
@@ -1647,7 +1684,25 @@ def api_delete_user(user_id):
 def api_sessions():
     try:
         sessions = execute_query("""
-            SELECT * FROM radacct
+            SELECT 
+                radacctid,
+                acctsessionid,
+                acctuniqueid,
+                username,
+                nasipaddress,
+                nasportid,
+                nasporttype,
+                acctstarttime,
+                acctsessiontime,
+                acctinputoctets,
+                acctoutputoctets,
+                calledstationid,
+                callingstationid,
+                framedipaddress,
+                framedprotocol,
+                servicetype,
+                connectinfo_start
+            FROM radacct
             WHERE acctstoptime IS NULL
             ORDER BY acctstarttime DESC
         """)
@@ -1677,57 +1732,152 @@ def api_logs():
         return jsonify({'error': str(e)}), 500
 
 
-# === MIKROTIK CREDENTIAL MANAGEMENT ===
 @app.route('/api/mikrotik/credentials', methods=['POST'])
 @login_required
 def api_save_mikrotik_credentials():
     try:
         data = get_request_data()
-        nas_id = data['nas_id']
-        username = data['username']
-        password = data['password']
+        nas_id = data.get('nas_id')
+        username = data.get('username')
+        password = data.get('password')
         port = data.get('port', 8728)
         
-        success = save_mikrotik_credentials_db(nas_id, username, password, port)
+        print(f"\n{'='*60}")
+        print(f"SAVE CREDENTIALS REQUEST")
+        print(f"{'='*60}")
+        print(f"NAS ID: {nas_id}")
+        print(f"Username: {username}")
+        print(f"Password: {'*' * len(password) if password else 'EMPTY'}")
+        print(f"Port: {port}")
+        print(f"{'='*60}\n")
         
-        if success:
-            session_key = f'mikrotik_creds_{nas_id}'
-            session[session_key] = {
-                'username': username,
-                'password': password,
-                'port': port
-            }
-            
-            print(f"DEBUG: Credentials saved for NAS {nas_id}: user={username}, port={port}")
-            return jsonify({'success': True, 'message': 'Credentials saved successfully'})
+        if not nas_id or not username or not password:
+            error_msg = f"Missing required fields: nas_id={nas_id}, username={username}, password={'SET' if password else 'EMPTY'}"
+            print(f"ERROR: {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
+        
+        # 1. Save to DATABASE
+        print("Step 1: Saving to database...")
+        db_success = save_mikrotik_credentials_db(nas_id, username, password, port)
+        
+        if not db_success:
+            print("ERROR: Failed to save to database")
+            return jsonify({'success': False, 'error': 'Failed to save to database'}), 500
+        
+        print("✓ Database save successful")
+        
+        # 2. Verify database save
+        print("\nStep 2: Verifying database save...")
+        db_verify = get_mikrotik_credentials_db(nas_id)
+        if db_verify:
+            print(f"✓ Verification successful: Found username='{db_verify['username']}' in database")
         else:
-            return jsonify({'success': False, 'error': 'Failed to save credentials to database'}), 500
-            
+            print("WARNING: Verification failed - credentials not found after save")
+        
+        # 3. Save to SESSION
+        print("\nStep 3: Saving to session...")
+        session_key = f'mikrotik_creds_{nas_id}'
+        session[session_key] = {
+            'username': username,
+            'password': password,
+            'port': port
+        }
+        session.permanent = True
+        session.modified = True
+        print(f"✓ Session save successful with key: {session_key}")
+        
+        # 4. Verify session save
+        print("\nStep 4: Verifying session save...")
+        session_verify = session.get(session_key)
+        if session_verify:
+            print(f"✓ Session verification successful: {session_verify['username']}")
+        else:
+            print("WARNING: Session verification failed")
+        
+        print(f"\n{'='*60}")
+        print(f"SAVE COMPLETED SUCCESSFULLY")
+        print(f"{'='*60}\n")
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Credentials saved successfully',
+            'debug': {
+                'nas_id': nas_id,
+                'username': username,
+                'port': port,
+                'db_saved': db_success,
+                'session_saved': True
+            }
+        })
+        
     except Exception as e:
-        print(f"DEBUG: Error saving credentials: {str(e)}")
+        print(f"\n{'='*60}")
+        print(f"ERROR IN SAVE CREDENTIALS")
+        print(f"{'='*60}")
+        print(f"Error: {str(e)}")
+        print(traceback.format_exc())
+        print(f"{'='*60}\n")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/mikrotik/credentials/<int:nas_id>')
 @login_required
 def api_get_mikrotik_credentials(nas_id):
     try:
+        print(f"\n{'='*60}")
+        print(f"GET CREDENTIALS REQUEST")
+        print(f"{'='*60}")
+        print(f"NAS ID: {nas_id}")
+        
+        # 1. Check SESSION first
+        print("\nStep 1: Checking session...")
         session_key = f'mikrotik_creds_{nas_id}'
         creds = session.get(session_key, {})
         
-        if not creds.get('username') or not creds.get('password'):
-            db_creds = get_mikrotik_credentials_db(nas_id)
-            if db_creds:
-                creds = {
-                    'username': db_creds['username'],
-                    'password': db_creds['password'],
-                    'port': db_creds['port']
-                }
-                session[session_key] = creds
+        if creds.get('username') and creds.get('password'):
+            print(f"✓ Found in session: username='{creds['username']}', port={creds.get('port', 8728)}")
+            print(f"{'='*60}\n")
+            return jsonify(creds)
+        else:
+            print("✗ Not found in session, checking database...")
         
-        print(f"DEBUG: Retrieved credentials for NAS {nas_id}: {creds}")
-        return jsonify(creds)
+        # 2. Check DATABASE
+        print("\nStep 2: Checking database...")
+        db_creds = get_mikrotik_credentials_db(nas_id)
+        
+        if db_creds:
+            print(f"✓ Found in database: username='{db_creds['username']}', port={db_creds['port']}")
+            
+            # 3. Save to session for next time
+            print("\nStep 3: Caching to session...")
+            creds = {
+                'username': db_creds['username'],
+                'password': db_creds['password'],
+                'port': db_creds['port']
+            }
+            session[session_key] = creds
+            session.permanent = True
+            session.modified = True
+            print(f"✓ Cached to session with key: {session_key}")
+            
+            print(f"\n{'='*60}")
+            print(f"GET COMPLETED - FOUND IN DATABASE")
+            print(f"{'='*60}\n")
+            
+            return jsonify(creds)
+        else:
+            print("✗ Not found in database")
+            print(f"\n{'='*60}")
+            print(f"GET COMPLETED - NOT FOUND")
+            print(f"{'='*60}\n")
+            return jsonify({})
+        
     except Exception as e:
-        print(f"DEBUG: Error getting credentials: {str(e)}")
+        print(f"\n{'='*60}")
+        print(f"ERROR IN GET CREDENTIALS")
+        print(f"{'='*60}")
+        print(f"Error: {str(e)}")
+        print(traceback.format_exc())
+        print(f"{'='*60}\n")
         return jsonify({'error': str(e)}), 500
 
 

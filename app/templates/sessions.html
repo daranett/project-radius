@@ -1,24 +1,104 @@
 {% extends "base.html" %}
 
-{% block title %}Sessions - RADIUS Manager{% endblock %}
+{% block title %}Active Sessions - RADIUS Manager{% endblock %}
 {% block page_title %}Active Sessions{% endblock %}
-{% block page_subtitle %}Live PPPoE Connections & Monitoring{% endblock %}
+{% block page_subtitle %}Live PPPoE Connections & Real-time Monitoring{% endblock %}
 
 {% block content %}
 <div class="fade-in">
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-semibold text-gray-800">Active PPPoE Sessions</h3>
-            <button onclick="loadSessions()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-                <i class="fas fa-sync-alt"></i>
-                <span>Refresh</span>
-            </button>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800">Active PPPoE Sessions</h3>
+                <p class="text-sm text-gray-600 mt-1">Real-time connection monitoring dengan informasi lengkap</p>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="loadSessions()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Refresh</span>
+                </button>
+                <button onclick="toggleAutoRefresh()" id="autoRefreshBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                    <i class="fas fa-play"></i>
+                    <span>Auto Refresh</span>
+                </button>
+            </div>
         </div>
 
+        <!-- Session Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-blue-700 font-medium">Total Sessions</p>
+                        <p id="totalSessions" class="text-3xl font-bold text-blue-900 mt-1">0</p>
+                    </div>
+                    <div class="bg-blue-200 rounded-full p-3">
+                        <i class="fas fa-users text-blue-700 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-green-700 font-medium">Total Download</p>
+                        <p id="totalDownload" class="text-2xl font-bold text-green-900 mt-1">0 GB</p>
+                    </div>
+                    <div class="bg-green-200 rounded-full p-3">
+                        <i class="fas fa-download text-green-700 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-purple-700 font-medium">Total Upload</p>
+                        <p id="totalUpload" class="text-2xl font-bold text-purple-900 mt-1">0 GB</p>
+                    </div>
+                    <div class="bg-purple-200 rounded-full p-3">
+                        <i class="fas fa-upload text-purple-700 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-orange-700 font-medium">Avg Duration</p>
+                        <p id="avgDuration" class="text-2xl font-bold text-orange-900 mt-1">0h 0m</p>
+                    </div>
+                    <div class="bg-orange-200 rounded-full p-3">
+                        <i class="fas fa-clock text-orange-700 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex-1 min-w-[200px]">
+                    <input type="text" id="searchInput" placeholder="Cari username..." 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           onkeyup="filterSessions()">
+                </div>
+                <select id="sortBy" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="sortSessions()">
+                    <option value="duration_desc">Duration (Terlama)</option>
+                    <option value="duration_asc">Duration (Terbaru)</option>
+                    <option value="download_desc">Download (Terbesar)</option>
+                    <option value="upload_desc">Upload (Terbesar)</option>
+                    <option value="username_asc">Username (A-Z)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Sessions List -->
         <div id="sessionsList" class="space-y-4">
             <div class="text-center py-8">
-                <i class="fas fa-spinner fa-spin text-blue-600 text-2xl mb-2"></i>
-                <p class="text-gray-600">Loading active sessions...</p>
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                <p class="text-gray-600 font-medium">Loading active sessions...</p>
+                <p class="text-gray-500 text-sm">Please wait...</p>
             </div>
         </div>
     </div>
@@ -27,84 +107,334 @@
 
 {% block scripts %}
 <script>
-    // Load sessions list
+    let allSessions = [];
+    let autoRefreshInterval = null;
+    let isAutoRefresh = false;
+
+    // Load sessions list with enhanced information
     async function loadSessions() {
-        const data = await apiCall('/api/sessions');
-        const sessionsList = document.getElementById('sessionsList');
-        
-        if (data.error) {
-            sessionsList.innerHTML = `
-                <div class="text-center py-8 text-red-600">
-                    <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                    <p>Error loading sessions: ${data.error}</p>
+        try {
+            const data = await apiCall('/api/sessions');
+            const sessionsList = document.getElementById('sessionsList');
+            
+            if (data.error) {
+                sessionsList.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                        </div>
+                        <p class="text-red-600 font-medium">Error loading sessions</p>
+                        <p class="text-red-500 text-sm mt-1">${data.error}</p>
+                        <button onclick="loadSessions()" class="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            allSessions = data;
+
+            if (data.length === 0) {
+                sessionsList.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="bg-gray-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-plug text-gray-400 text-3xl"></i>
+                        </div>
+                        <p class="text-gray-700 font-semibold text-lg">No Active Sessions</p>
+                        <p class="text-gray-500 text-sm mt-2">All PPPoE connections are currently idle</p>
+                    </div>
+                `;
+                
+                updateStatistics(data);
+                return;
+            }
+
+            // Update statistics
+            updateStatistics(data);
+
+            // Display sessions
+            displaySessions(data);
+
+        } catch (error) {
+            console.error('Error loading sessions:', error);
+            document.getElementById('sessionsList').innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-2xl mb-2"></i>
+                    <p class="text-red-600">Network error: ${error.message}</p>
                 </div>
             `;
-            return;
         }
-
-        if (data.length === 0) {
-            sessionsList.innerHTML = `
-                <div class="text-center py-8 text-gray-500">
-                    <i class="fas fa-plug text-2xl mb-2"></i>
-                    <p>No active sessions</p>
-                    <p class="text-sm">All PPPoE connections are idle</p>
-                </div>
-            `;
-            return;
-        }
-
-        sessionsList.innerHTML = data.map(session => `
-            <div class="bg-gray-50 rounded-lg p-4 border border-green-200 hover:border-green-300 transition-colors">
-                <div class="flex items-center space-x-3 mb-3">
-                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <h4 class="font-semibold text-gray-800">${session.username}</h4>
-                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">LIVE</span>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                    <div>
-                        <span class="font-medium">NAS IP:</span>
-                        <div class="text-gray-800 font-mono">${session.nasipaddress}</div>
-                    </div>
-                    <div>
-                        <span class="font-medium">Start Time:</span>
-                        <div class="text-gray-800">${new Date(session.acctstarttime).toLocaleString()}</div>
-                    </div>
-                    <div>
-                        <span class="font-medium">Duration:</span>
-                        <div class="text-gray-800">${Math.floor(session.acctsessiontime / 3600)}h ${Math.floor((session.acctsessiontime % 3600) / 60)}m</div>
-                    </div>
-                    <div>
-                        <span class="font-medium">Session ID:</span>
-                        <div class="text-gray-800 font-mono text-xs">${session.acctsessionid}</div>
-                    </div>
-                </div>
-                ${session.acctinputoctets || session.acctoutputoctets ? `
-                    <div class="mt-3 grid grid-cols-2 gap-4 text-sm">
-                        <div class="bg-blue-50 p-2 rounded">
-                            <span class="font-medium text-blue-700">Download:</span>
-                            <div class="text-blue-800">${formatBytes(session.acctinputoctets || 0)}</div>
-                        </div>
-                        <div class="bg-green-50 p-2 rounded">
-                            <span class="font-medium text-green-700">Upload:</span>
-                            <div class="text-green-800">${formatBytes(session.acctoutputoctets || 0)}</div>
-                        </div>
-                    </div>
-                ` : ''}
-            </div>
-        `).join('');
     }
 
-    // Format bytes to human readable
+    // Display sessions
+    function displaySessions(sessions) {
+        const sessionsList = document.getElementById('sessionsList');
+        
+        sessionsList.innerHTML = sessions.map((session, index) => {
+            const duration = formatDuration(session.acctsessiontime || 0);
+            const startTime = new Date(session.acctstarttime).toLocaleString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            return `
+                <div class="bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 rounded-xl p-5 border-2 border-green-200 hover:border-green-400 transition-all shadow-sm hover:shadow-md">
+                    <!-- Header -->
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <div class="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+                                <div class="absolute inset-0 w-4 h-4 bg-green-400 rounded-full animate-ping"></div>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-lg">${session.username}</h4>
+                                <p class="text-xs text-gray-500">Session #${index + 1} • ${session.acctsessionid}</p>
+                            </div>
+                        </div>
+                        <span class="bg-green-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-sm flex items-center space-x-1">
+                            <i class="fas fa-circle text-xs animate-pulse"></i>
+                            <span>LIVE</span>
+                        </span>
+                    </div>
+                    
+                    <!-- Network Info Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+                            <p class="text-xs text-gray-500 mb-1 flex items-center">
+                                <i class="fas fa-server text-gray-400 mr-1"></i>
+                                NAS IP
+                            </p>
+                            <p class="font-mono text-sm font-semibold text-gray-800">${session.nasipaddress}</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+                            <p class="text-xs text-gray-500 mb-1 flex items-center">
+                                <i class="fas fa-network-wired text-gray-400 mr-1"></i>
+                                Client IP
+                            </p>
+                            <p class="font-mono text-sm font-semibold ${session.framedipaddress ? 'text-blue-600' : 'text-gray-400'}">${session.framedipaddress || 'Dynamic'}</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+                            <p class="text-xs text-gray-500 mb-1 flex items-center">
+                                <i class="fas fa-ethernet text-gray-400 mr-1"></i>
+                                NAS Port
+                            </p>
+                            <p class="text-sm font-semibold text-gray-800">${session.nasportid || 'N/A'}</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+                            <p class="text-xs text-gray-500 mb-1 flex items-center">
+                                <i class="fas fa-sitemap text-gray-400 mr-1"></i>
+                                Port Type
+                            </p>
+                            <p class="text-sm font-semibold text-gray-800">${session.nasporttype || 'Virtual'}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Time Info Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+                            <p class="text-xs text-gray-500 mb-1 flex items-center">
+                                <i class="fas fa-calendar-alt text-gray-400 mr-1"></i>
+                                Start Time
+                            </p>
+                            <p class="text-sm font-semibold text-gray-800">${startTime}</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+                            <p class="text-xs text-gray-500 mb-1 flex items-center">
+                                <i class="fas fa-hourglass-half text-gray-400 mr-1"></i>
+                                Duration
+                            </p>
+                            <p class="text-sm font-semibold text-blue-600">${duration}</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+                            <p class="text-xs text-gray-500 mb-1 flex items-center">
+                                <i class="fas fa-layer-group text-gray-400 mr-1"></i>
+                                Protocol
+                            </p>
+                            <p class="text-sm font-semibold text-gray-800">${session.framedprotocol || 'PPP'}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Usage -->
+                    ${(session.acctinputoctets || session.acctoutputoctets) ? `
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div class="bg-gradient-to-br from-blue-100 to-blue-50 p-4 rounded-lg border border-blue-200">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-semibold text-blue-700">Download</span>
+                                    <div class="bg-blue-200 rounded-full p-2">
+                                        <i class="fas fa-download text-blue-600 text-sm"></i>
+                                    </div>
+                                </div>
+                                <p class="text-xl font-bold text-blue-900">${formatBytes(session.acctinputoctets || 0)}</p>
+                                <p class="text-xs text-blue-600 mt-1">${formatBytesShort(session.acctinputoctets || 0)}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-purple-100 to-purple-50 p-4 rounded-lg border border-purple-200">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-semibold text-purple-700">Upload</span>
+                                    <div class="bg-purple-200 rounded-full p-2">
+                                        <i class="fas fa-upload text-purple-600 text-sm"></i>
+                                    </div>
+                                </div>
+                                <p class="text-xl font-bold text-purple-900">${formatBytes(session.acctoutputoctets || 0)}</p>
+                                <p class="text-xs text-purple-600 mt-1">${formatBytesShort(session.acctoutputoctets || 0)}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Station Info (Collapsed by default) -->
+                    ${(session.calledstationid || session.callingstationid) ? `
+                        <details class="mt-3 group">
+                            <summary class="cursor-pointer bg-gray-100 hover:bg-gray-200 rounded-lg p-3 text-sm font-medium text-gray-700 transition-colors">
+                                <i class="fas fa-chevron-right group-open:rotate-90 transition-transform inline-block mr-2"></i>
+                                Station Information
+                            </summary>
+                            <div class="mt-2 bg-white rounded-lg p-3 border border-gray-200">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    ${session.calledstationid ? `
+                                        <div>
+                                            <span class="text-gray-500 font-medium">Called Station ID:</span>
+                                            <p class="font-mono text-gray-800 mt-1">${session.calledstationid}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${session.callingstationid ? `
+                                        <div>
+                                            <span class="text-gray-500 font-medium">Calling Station ID:</span>
+                                            <p class="font-mono text-gray-800 mt-1">${session.callingstationid}</p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </details>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Update statistics
+    function updateStatistics(sessions) {
+        const totalSessions = sessions.length;
+        let totalDownload = 0;
+        let totalUpload = 0;
+        let totalDuration = 0;
+
+        sessions.forEach(session => {
+            totalDownload += parseInt(session.acctinputoctets || 0);
+            totalUpload += parseInt(session.acctoutputoctets || 0);
+            totalDuration += parseInt(session.acctsessiontime || 0);
+        });
+
+        document.getElementById('totalSessions').textContent = totalSessions;
+        document.getElementById('totalDownload').textContent = formatBytes(totalDownload);
+        document.getElementById('totalUpload').textContent = formatBytes(totalUpload);
+        
+        if (totalSessions > 0) {
+            const avgDuration = Math.floor(totalDuration / totalSessions);
+            document.getElementById('avgDuration').textContent = formatDuration(avgDuration);
+        } else {
+            document.getElementById('avgDuration').textContent = '0h 0m';
+        }
+    }
+
+    // Format bytes to human readable (full)
     function formatBytes(bytes) {
         if (bytes === 0) return '0 B';
         const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    // Auto-refresh every 10 seconds
-    loadSessions();
-    setInterval(loadSessions, 10000);
+    // Format bytes short (for sub-text)
+    function formatBytesShort(bytes) {
+        return `${(bytes / (1024 * 1024)).toFixed(0)} MB total`;
+    }
+
+    // Format duration to readable format
+    function formatDuration(seconds) {
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        let result = [];
+        if (days > 0) result.push(`${days}d`);
+        if (hours > 0) result.push(`${hours}h`);
+        if (minutes > 0) result.push(`${minutes}m`);
+        if (secs > 0 && days === 0 && hours === 0) result.push(`${secs}s`);
+        
+        return result.join(' ') || '0s';
+    }
+
+    // Filter sessions by search
+    function filterSessions() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allSessions.filter(session => 
+            session.username.toLowerCase().includes(searchTerm)
+        );
+        displaySessions(filtered);
+    }
+
+    // Sort sessions
+    function sortSessions() {
+        const sortBy = document.getElementById('sortBy').value;
+        let sorted = [...allSessions];
+        
+        switch(sortBy) {
+            case 'duration_desc':
+                sorted.sort((a, b) => (b.acctsessiontime || 0) - (a.acctsessiontime || 0));
+                break;
+            case 'duration_asc':
+                sorted.sort((a, b) => (a.acctsessiontime || 0) - (b.acctsessiontime || 0));
+                break;
+            case 'download_desc':
+                sorted.sort((a, b) => (b.acctinputoctets || 0) - (a.acctinputoctets || 0));
+                break;
+            case 'upload_desc':
+                sorted.sort((a, b) => (b.acctoutputoctets || 0) - (a.acctoutputoctets || 0));
+                break;
+            case 'username_asc':
+                sorted.sort((a, b) => a.username.localeCompare(b.username));
+                break;
+        }
+        
+        displaySessions(sorted);
+    }
+
+    // Toggle auto refresh
+    function toggleAutoRefresh() {
+        const btn = document.getElementById('autoRefreshBtn');
+        
+        if (isAutoRefresh) {
+            // Stop auto refresh
+            clearInterval(autoRefreshInterval);
+            isAutoRefresh = false;
+            btn.innerHTML = '<i class="fas fa-play"></i><span>Auto Refresh</span>';
+            btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            btn.classList.add('bg-green-600', 'hover:bg-green-700');
+            showNotification('Auto refresh stopped', 'info');
+        } else {
+            // Start auto refresh
+            autoRefreshInterval = setInterval(loadSessions, 10000);
+            isAutoRefresh = true;
+            btn.innerHTML = '<i class="fas fa-stop"></i><span>Stop Auto</span>';
+            btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            btn.classList.add('bg-red-600', 'hover:bg-red-700');
+            showNotification('Auto refresh active (every 10s)', 'success');
+        }
+    }
+
+    // Load on page ready
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSessions();
+    });
 </script>
 {% endblock %}

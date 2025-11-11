@@ -19,3 +19,6 @@ docker compose logs -f
 # http://your.ip:5000
 # atau (jika pakai Traefik dan HTTPS)
 # https://your.domain
+
+traktir kopi
+DANA 081211081663
