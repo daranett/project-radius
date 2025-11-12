@@ -17,7 +17,7 @@ services:
 #      - "traefik.http.routers.radius-secure.service=radius"
 #      - "traefik.http.services.radius.loadbalancer.server.port=5000"
     environment:
-      - DB_HOST=freeradius-db
+      - DB_HOST=postgres
       - DB_NAME=radius
       - DB_USER=radius
       - DB_PASSWORD=radiuspass
