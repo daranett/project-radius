@@ -6,251 +6,293 @@
 
 {% block content %}
 <div class="fade-in">
-    <!-- Stats Grid - Fixed Layout -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <!-- Total Users -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <!-- 🎨 STATS CARDS dengan Gradient & Animasi -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Total Users Card -->
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white transform hover:scale-105 transition-all duration-300">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-600 text-sm font-medium mb-1">Total Users</p>
-                    <h3 id="totalUsers" class="text-2xl font-bold text-gray-800">-</h3>
+                <div class="flex-1">
+                    <p class="text-sm font-medium opacity-90 mb-1">Total Users</p>
+                    <p id="totalUsers" class="text-4xl font-bold mb-1">0</p>
+                    <p class="text-xs opacity-75">
+                        <i class="fas fa-users mr-1"></i>
+                        <span id="activeUsers">0</span> Active PPPoE users
+                    </p>
                 </div>
-                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-users text-blue-600"></i>
+                <div class="bg-white bg-opacity-20 p-4 rounded-xl">
+                    <i class="fas fa-users text-4xl"></i>
                 </div>
-            </div>
-            <div class="mt-2 flex items-center text-green-600 text-xs">
-                <i class="fas fa-arrow-up mr-1"></i>
-                <span>Active PPPoE users</span>
             </div>
         </div>
 
-        <!-- Active Sessions -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <!-- Active Sessions Card -->
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white transform hover:scale-105 transition-all duration-300">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-600 text-sm font-medium mb-1">Active Sessions</p>
-                    <h3 id="activeSessions" class="text-2xl font-bold text-gray-800">-</h3>
+                <div class="flex-1">
+                    <p class="text-sm font-medium opacity-90 mb-1">Active Sessions</p>
+                    <p id="activeSessions" class="text-4xl font-bold mb-1">0</p>
+                    <p class="text-xs opacity-75">
+                        <i class="fas fa-wifi mr-1"></i>
+                        <span>All live connections</span>
+                    </p>
                 </div>
-                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-plug text-green-600"></i>
+                <div class="bg-white bg-opacity-20 p-4 rounded-xl">
+                    <i class="fas fa-plug text-4xl"></i>
                 </div>
-            </div>
-            <div class="mt-2 flex items-center text-green-600 text-xs">
-                <i class="fas fa-signal mr-1"></i>
-                <span>Live connections</span>
             </div>
         </div>
 
-        <!-- Auth Attempts -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <!-- Auth Attempts Card -->
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white transform hover:scale-105 transition-all duration-300">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-600 text-sm font-medium mb-1">Auth Attempts</p>
-                    <h3 id="todayAuth" class="text-2xl font-bold text-gray-800">-</h3>
+                <div class="flex-1">
+                    <p class="text-sm font-medium opacity-90 mb-1">Auth Attempts</p>
+                    <p id="authAttempts" class="text-4xl font-bold mb-1">0</p>
+                    <p class="text-xs opacity-75">
+                        <i class="fas fa-bolt mr-1"></i>
+                        <span>Today's authentication</span>
+                    </p>
                 </div>
-                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-chart-line text-purple-600"></i>
+                <div class="bg-white bg-opacity-20 p-4 rounded-xl">
+                    <i class="fas fa-chart-line text-4xl"></i>
                 </div>
-            </div>
-            <div class="mt-2 flex items-center text-green-600 text-xs">
-                <i class="fas fa-bolt mr-1"></i>
-                <span>Today's authentication</span>
             </div>
         </div>
 
-        <!-- NAS Devices -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <!-- NAS Devices Card -->
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-xl shadow-lg text-white transform hover:scale-105 transition-all duration-300">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-600 text-sm font-medium mb-1">NAS Devices</p>
-                    <h3 id="totalNas" class="text-2xl font-bold text-gray-800">-</h3>
+                <div class="flex-1">
+                    <p class="text-sm font-medium opacity-90 mb-1">NAS Devices</p>
+                    <p id="nasDevices" class="text-4xl font-bold mb-1">0</p>
+                    <p class="text-xs opacity-75">
+                        <i class="fas fa-network-wired mr-1"></i>
+                        <span>Network devices</span>
+                    </p>
                 </div>
-                <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-server text-orange-600"></i>
+                <div class="bg-white bg-opacity-20 p-4 rounded-xl">
+                    <i class="fas fa-server text-4xl"></i>
                 </div>
-            </div>
-            <div class="mt-2 flex items-center text-green-600 text-xs">
-                <i class="fas fa-network-wired mr-1"></i>
-                <span>Network devices</span>
             </div>
         </div>
     </div>
 
-    <!-- Main Content - Simplified Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <!-- Quick Actions - Full width on mobile -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
-            <div class="grid grid-cols-2 gap-3">
-                <a href="/nas" class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-center">
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-2">
-                        <i class="fas fa-plus text-blue-600"></i>
+    <!-- 📊 MAIN CONTENT ROW -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Quick Actions - Redesigned -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-bolt text-blue-600 mr-2"></i>
+                Quick Actions
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+                <a href="/nas" class="group block">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl text-center hover:shadow-md transition-all transform hover:scale-105">
+                        <div class="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-plus text-xl"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-800">Add NAS</p>
+                        <p class="text-xs text-gray-600 mt-1">Network device</p>
                     </div>
-                    <p class="font-medium text-gray-800 text-sm">Add NAS</p>
-                    <p class="text-xs text-gray-600 mt-1">Network device</p>
                 </a>
-                
-                <a href="/users" class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-center">
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-2">
-                        <i class="fas fa-user-plus text-green-600"></i>
+
+                <a href="/users" class="group block">
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl text-center hover:shadow-md transition-all transform hover:scale-105">
+                        <div class="bg-green-600 text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-700 transition-colors">
+                            <i class="fas fa-user-plus text-xl"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-800">Add User</p>
+                        <p class="text-xs text-gray-600 mt-1">PPPoE account</p>
                     </div>
-                    <p class="font-medium text-gray-800 text-sm">Add User</p>
-                    <p class="text-xs text-gray-600 mt-1">PPPoE account</p>
                 </a>
-                
-                <a href="/sessions" class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-center">
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-2">
-                        <i class="fas fa-eye text-purple-600"></i>
+
+                <a href="/sessions" class="group block">
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl text-center hover:shadow-md transition-all transform hover:scale-105">
+                        <div class="bg-purple-600 text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-700 transition-colors">
+                            <i class="fas fa-eye text-xl"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-800">Sessions</p>
+                        <p class="text-xs text-gray-600 mt-1">Live connections</p>
                     </div>
-                    <p class="font-medium text-gray-800 text-sm">View Sessions</p>
-                    <p class="text-xs text-gray-600 mt-1">Live connections</p>
                 </a>
-                
-                <a href="/billing/customers" class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-center">
-                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-2">
-                        <i class="fas fa-user-plus text-red-600"></i>
+
+                <a href="/billing/customers" class="group block">
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-xl text-center hover:shadow-md transition-all transform hover:scale-105">
+                        <div class="bg-red-600 text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-red-700 transition-colors">
+                            <i class="fas fa-user-tie text-xl"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-800">Customer</p>
+                        <p class="text-xs text-gray-600 mt-1">Billing account</p>
                     </div>
-                    <p class="font-medium text-gray-800 text-sm">Add Customer</p>
-                    <p class="text-xs text-gray-600 mt-1">Billing account</p>
                 </a>
             </div>
         </div>
 
-        <!-- System Status -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">System Status</h3>
-            <div class="space-y-3">
-                <div class="flex items-center justify-between py-2">
+        <!-- System Status - Enhanced -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-server text-green-600 mr-2"></i>
+                System Status
+            </h3>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                     <div class="flex items-center">
-                        <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                        <span class="text-sm text-gray-700">Database</span>
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
+                        <span class="text-sm font-medium text-gray-800">Database</span>
                     </div>
-                    <span class="text-green-600 text-sm font-medium">Operational</span>
+                    <span class="text-xs font-semibold text-green-600 px-3 py-1 bg-green-100 rounded-full">Operational</span>
                 </div>
                 
-                <div class="flex items-center justify-between py-2">
+                <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                     <div class="flex items-center">
-                        <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                        <span class="text-sm text-gray-700">RADIUS Service</span>
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
+                        <span class="text-sm font-medium text-gray-800">RADIUS Service</span>
                     </div>
-                    <span class="text-green-600 text-sm font-medium">Running</span>
+                    <span class="text-xs font-semibold text-green-600 px-3 py-1 bg-green-100 rounded-full">Running</span>
                 </div>
                 
-                <div class="flex items-center justify-between py-2">
+                <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                     <div class="flex items-center">
-                        <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                        <span class="text-sm text-gray-700">Web Interface</span>
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
+                        <span class="text-sm font-medium text-gray-800">Web Interface</span>
                     </div>
-                    <span class="text-green-600 text-sm font-medium">Online</span>
+                    <span class="text-xs font-semibold text-green-600 px-3 py-1 bg-green-100 rounded-full">Online</span>
                 </div>
                 
-                <div class="flex items-center justify-between py-2 border-t border-gray-100 pt-3">
+                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg mt-4 border-t border-gray-200 pt-4">
                     <div class="flex items-center">
-                        <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                        <span class="text-sm text-gray-700">Last Update</span>
+                        <i class="fas fa-clock text-blue-600 mr-3"></i>
+                        <span class="text-sm font-medium text-gray-800">Last Update</span>
                     </div>
-                    <span id="lastUpdate" class="text-gray-600 text-xs font-mono">Loading...</span>
+                    <span class="text-xs text-gray-600" id="lastUpdate">Just now</span>
                 </div>
             </div>
         </div>
 
-        <!-- Billing Overview -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Billing Overview</h3>
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-blue-600" id="activeCustomers">-</div>
-                    <div class="text-sm text-gray-600">Active Customers</div>
+        <!-- Billing Overview - NEW -->
+        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg text-white p-6">
+            <h3 class="text-lg font-semibold mb-6 flex items-center opacity-90">
+                <i class="fas fa-money-bill-wave mr-2"></i>
+                Billing Overview
+            </h3>
+            <div class="space-y-4">
+                <div class="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
+                    <p class="text-2xl font-bold" id="billingActiveCustomers">0</p>
+                    <p class="text-sm opacity-90">Active Customers</p>
                 </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-orange-600" id="pendingInvoices">-</div>
-                    <div class="text-sm text-gray-600">Pending Invoices</div>
+                <div class="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
+                    <p class="text-2xl font-bold" id="billingPendingInvoices">0</p>
+                    <p class="text-sm opacity-90">Pending Invoices</p>
                 </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="text-center">
-                    <div class="text-xl font-bold text-green-600" id="todayIncome">-</div>
-                    <div class="text-sm text-gray-600">Today's Income</div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white bg-opacity-20 p-3 rounded-lg backdrop-blur-sm">
+                        <p class="text-lg font-bold" id="billingTodayIncome">Rp 0</p>
+                        <p class="text-xs opacity-90">Today</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 p-3 rounded-lg backdrop-blur-sm">
+                        <p class="text-lg font-bold" id="billingMonthlyIncome">Rp 0</p>
+                        <p class="text-xs opacity-90">This Month</p>
+                    </div>
                 </div>
-                <div class="text-center">
-                    <div class="text-xl font-bold text-purple-600" id="monthlyIncome">-</div>
-                    <div class="text-sm text-gray-600">Monthly Income</div>
+                <div class="flex space-x-2 mt-4">
+                    <a href="/billing/invoices" class="flex-1 bg-white text-indigo-600 text-center py-2 rounded-lg text-sm font-semibold hover:bg-opacity-90 transition-all">
+                        View Invoices
+                    </a>
+                    <a href="/billing/customers" class="flex-1 bg-white bg-opacity-20 text-white text-center py-2 rounded-lg text-sm font-semibold hover:bg-opacity-30 transition-all">
+                        Add Customer
+                    </a>
                 </div>
-            </div>
-            <div class="mt-4 flex space-x-2">
-                <a href="/billing/invoices" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-3 rounded text-sm transition-colors">
-                    View Invoices
-                </a>
-                <a href="/billing/customers" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-2 px-3 rounded text-sm transition-colors">
-                    Add Customer
-                </a>
             </div>
         </div>
     </div>
 
-    <!-- Bottom Sections -->
+    <!-- 📈 CHARTS ROW -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Authentication Activity Chart -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <i class="fas fa-chart-area text-purple-600 mr-2"></i>
+                        Authentication Activity
+                    </h3>
+                    <p class="text-sm text-gray-500 mt-1">Last 30 minutes</p>
+                </div>
+                <button onclick="refreshActivityChart()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <canvas id="authActivityChart" height="200"></canvas>
+        </div>
+
+        <!-- Sessions Distribution Chart -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <i class="fas fa-chart-pie text-blue-600 mr-2"></i>
+                        Sessions by NAS
+                    </h3>
+                    <p class="text-sm text-gray-500 mt-1">Current distribution</p>
+                </div>
+            </div>
+            <canvas id="sessionsPieChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- 📋 RECENT ACTIVITY & PERFORMANCE -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Recent Activity -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-800">Recent Activity</h3>
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-6 flex items-center justify-between">
+                <span>
+                    <i class="fas fa-history text-gray-600 mr-2"></i>
+                    Recent Activity
+                </span>
                 <span class="text-xs text-gray-500">Last 30 minutes</span>
-            </div>
-            <div class="space-y-3">
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div class="flex items-center">
-                        <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                        <span class="text-sm text-gray-700">User login successful</span>
-                    </div>
-                    <span class="text-xs text-gray-500">2 min ago</span>
-                </div>
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div class="flex items-center">
-                        <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                        <span class="text-sm text-gray-700">New session started</span>
-                    </div>
-                    <span class="text-xs text-gray-500">5 min ago</span>
-                </div>
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div class="flex items-center">
-                        <div class="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
-                        <span class="text-sm text-gray-700">NAS device check</span>
-                    </div>
-                    <span class="text-xs text-gray-500">8 min ago</span>
+            </h3>
+            <div class="space-y-3" id="recentActivityList">
+                <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <div class="w-2 h-2 bg-gray-300 rounded-full mr-3 animate-pulse"></div>
+                    <span class="text-sm text-gray-600">Loading activity...</span>
                 </div>
             </div>
         </div>
 
         <!-- Performance Metrics -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Performance Metrics</h3>
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-tachometer-alt text-gray-600 mr-2"></i>
+                Performance Metrics
+            </h3>
             <div class="space-y-4">
                 <div>
-                    <div class="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>System Load</span>
-                        <span id="systemLoad">-</span>
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="text-gray-600">System Load</span>
+                        <span class="font-semibold text-gray-800">14%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div id="systemLoadBar" class="bg-green-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all" style="width: 14%"></div>
                     </div>
                 </div>
+                
                 <div>
-                    <div class="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>Memory Usage</span>
-                        <span id="memoryUsage">-</span>
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="text-gray-600">Memory Usage</span>
+                        <span class="font-semibold text-gray-800">64%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div id="memoryUsageBar" class="bg-blue-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all" style="width: 64%"></div>
                     </div>
                 </div>
+                
                 <div>
-                    <div class="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>Database Connections</span>
-                        <span id="dbConnections">-</span>
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="text-gray-600">Database Connections</span>
+                        <span class="font-semibold text-gray-800">6 / 100</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div id="dbConnectionsBar" class="bg-purple-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        <div class="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all" style="width: 6%"></div>
                     </div>
                 </div>
             </div>
@@ -260,140 +302,201 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Format timestamp yang profesional
-    function formatTimestamp(date = new Date()) {
-        return date.toLocaleString('en-US', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        }).replace(/(\d+)\/(\d+)\/(\d+),/, '$3-$1-$2');
-    }
+let authActivityChart, sessionsPieChart;
 
-    // Update timestamp
-    function updateTimestamp() {
-        const timestampElement = document.getElementById('lastUpdate');
-        if (timestampElement) {
-            timestampElement.textContent = formatTimestamp();
-        }
-    }
-
-    // Simulate performance metrics
-    function updatePerformanceMetrics() {
-        const systemLoad = Math.floor(Math.random() * 30) + 10; // 10-40%
-        const memoryUsage = Math.floor(Math.random() * 40) + 30; // 30-70%
-        const dbConnections = Math.floor(Math.random() * 20) + 5; // 5-25
-        
-        document.getElementById('systemLoad').textContent = systemLoad + '%';
-        document.getElementById('systemLoadBar').style.width = systemLoad + '%';
-        
-        document.getElementById('memoryUsage').textContent = memoryUsage + '%';
-        document.getElementById('memoryUsageBar').style.width = memoryUsage + '%';
-        
-        document.getElementById('dbConnections').textContent = dbConnections;
-        document.getElementById('dbConnectionsBar').style.width = Math.min(dbConnections * 4, 100) + '%';
-    }
-
+// Load dashboard stats
+function loadStats() {
+    fetch('/api/stats')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('totalUsers').textContent = data.total_users || 0;
+            document.getElementById('activeSessions').textContent = data.active_sessions || 0;
+            document.getElementById('authAttempts').textContent = data.today_auth || 0;
+            document.getElementById('nasDevices').textContent = data.total_nas || 0;
+        })
+        .catch(err => console.error('Error loading stats:', err));
+    
     // Load billing stats
-    async function loadBillingStats() {
-        try {
-            const response = await fetch('/api/billing/stats');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.error) {
-                console.log('Billing stats error:', data.error);
-                return;
-            }
+    fetch('/api/billing/stats')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('billingActiveCustomers').textContent = data.active_customers || 0;
+            document.getElementById('billingPendingInvoices').textContent = data.pending_invoices || 0;
+            document.getElementById('billingTodayIncome').textContent = 'Rp ' + (data.today_income || 0).toLocaleString('id-ID');
+            document.getElementById('billingMonthlyIncome').textContent = 'Rp ' + Math.round(data.monthly_income || 0).toLocaleString('id-ID');
+        })
+        .catch(err => console.error('Error loading billing stats:', err));
+}
 
-            // Update billing stats
-            document.getElementById('activeCustomers').textContent = data.active_customers || '0';
-            document.getElementById('pendingInvoices').textContent = data.pending_invoices || '0';
-            document.getElementById('todayIncome').textContent = 'Rp ' + (data.today_income || '0');
-            document.getElementById('monthlyIncome').textContent = 'Rp ' + (data.monthly_income || '0');
-            
-        } catch (error) {
-            console.log('Error loading billing stats:', error);
-        }
+// Create Auth Activity Chart
+function createAuthActivityChart() {
+    const ctx = document.getElementById('authActivityChart');
+    if (!ctx) return;
+    
+    // Generate sample data for last 30 minutes
+    const labels = [];
+    const data = [];
+    for (let i = 29; i >= 0; i--) {
+        labels.push(`${i}m ago`);
+        data.push(Math.floor(Math.random() * 20) + 5);
     }
-
-    // Load stats on page load
-    async function loadStats() {
-        try {
-            const response = await fetch('/api/stats');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+    
+    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
+    gradient.addColorStop(1, 'rgba(139, 92, 246, 0.05)');
+    
+    authActivityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Auth Attempts',
+                data: data,
+                borderColor: '#8b5cf6',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#8b5cf6',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: { font: { size: 11 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { 
+                        maxTicksLimit: 6,
+                        font: { size: 11 }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
             }
-            
-            const data = await response.json();
-            
-            if (data.error) {
-                showNotification('Failed to load stats: ' + data.error, 'error');
-                return;
-            }
-
-            // Update stats
-            document.getElementById('totalUsers').textContent = data.total_users || '0';
-            document.getElementById('activeSessions').textContent = data.active_sessions || '0';
-            document.getElementById('todayAuth').textContent = data.today_auth || '0';
-            document.getElementById('totalNas').textContent = data.total_nas || '0';
-            
-            // Update timestamp
-            updateTimestamp();
-            
-            // Update performance metrics
-            updatePerformanceMetrics();
-            
-            // Load billing stats
-            loadBillingStats();
-            
-        } catch (error) {
-            console.error('Error loading stats:', error);
-            showNotification('Failed to load stats: ' + error.message, 'error');
         }
-    }
-
-    // Manual refresh function
-    window.refreshDashboard = function() {
-        loadStats();
-        showNotification('Dashboard refreshed', 'success');
-    };
-
-    // Auto-refresh every 10 seconds
-    loadStats();
-    setInterval(loadStats, 10000);
-
-    // Update timestamp setiap 30 detik
-    setInterval(updateTimestamp, 30000);
-
-    // Update performance metrics setiap 15 detik
-    setInterval(updatePerformanceMetrics, 15000);
-
-    // Add refresh button event listener
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add refresh button to header
-        const header = document.querySelector('header .flex.items-center.space-x-4');
-        if (header) {
-            const refreshBtn = document.createElement('button');
-            refreshBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm';
-            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i><span>Refresh</span>';
-            refreshBtn.onclick = refreshDashboard;
-            header.appendChild(refreshBtn);
-        }
-
-        // Initial load
-        updateTimestamp();
-        updatePerformanceMetrics();
-        loadBillingStats();
     });
+}
+
+// Create Sessions Pie Chart
+function createSessionsPieChart() {
+    const ctx = document.getElementById('sessionsPieChart');
+    if (!ctx) return;
+    
+    sessionsPieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['MikroTik-1', 'MikroTik-2', 'Router-3', 'Others'],
+            datasets: [{
+                data: [45, 30, 15, 10],
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+                borderWidth: 3,
+                borderColor: '#fff',
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
+                        font: { size: 12 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Load Recent Activity
+function loadRecentActivity() {
+    const activityList = document.getElementById('recentActivityList');
+    
+    const activities = [
+        { type: 'success', icon: 'fa-check-circle', text: 'User login successful', time: '2 min ago', color: 'green' },
+        { type: 'info', icon: 'fa-info-circle', text: 'New session started', time: '5 min ago', color: 'blue' },
+        { type: 'warning', icon: 'fa-exclamation-triangle', text: 'NAS device check', time: '8 min ago', color: 'orange' }
+    ];
+    
+    let html = '';
+    activities.forEach(activity => {
+        html += `
+            <div class="flex items-center p-3 bg-${activity.color}-50 rounded-lg hover:bg-${activity.color}-100 transition-colors">
+                <div class="w-2 h-2 bg-${activity.color}-500 rounded-full mr-3"></div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-800">${activity.text}</p>
+                    <p class="text-xs text-gray-500 mt-1">${activity.time}</p>
+                </div>
+                <i class="fas ${activity.icon} text-${activity.color}-500"></i>
+            </div>
+        `;
+    });
+    
+    activityList.innerHTML = html;
+}
+
+// Refresh functions
+function refreshActivityChart() {
+    if (authActivityChart) {
+        authActivityChart.destroy();
+        createAuthActivityChart();
+    }
+}
+
+// Update time
+function updateTime() {
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('id-ID');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    createAuthActivityChart();
+    createSessionsPieChart();
+    loadRecentActivity();
+    updateTime();
+    
+    // Auto refresh every 30 seconds
+    setInterval(() => {
+        loadStats();
+        updateTime();
+    }, 30000);
+});
 </script>
 {% endblock %}
