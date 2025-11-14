@@ -1,9 +1,40 @@
 import os
+from datetime import timedelta
 
 class Config:
-    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
-    DB_HOST = os.getenv('DB_HOST', 'freeradius-db')
+    # Secret Key
+    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    
+    # Database Configuration
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
     DB_NAME = os.getenv('DB_NAME', 'radius')
     DB_USER = os.getenv('DB_USER', 'radius')
     DB_PASSWORD = os.getenv('DB_PASSWORD', 'radiuspass')
     DB_PORT = os.getenv('DB_PORT', '5432')
+    
+    # FIX: Session Configuration
+    SESSION_TYPE = os.getenv('SESSION_TYPE', 'filesystem')
+    SESSION_PERMANENT = True
+    PERMANENT_SESSION_LIFETIME = timedelta(days=7)
+    SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_FILE_DIR = '/tmp/flask_sessions'
+    
+    # Flask Configuration
+    FLASK_ENV = os.getenv('FLASK_ENV', 'development')
+    DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+    TESTING = False
+    
+    # Upload Configuration
+    UPLOAD_FOLDER = 'static/uploads/customers'
+    MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # 2MB
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    
+    # Backup Configuration
+    BACKUP_FOLDER = '/app/backups'
+    MAX_BACKUP_SIZE = 100 * 1024 * 1024  # 100MB
+    ALLOWED_BACKUP_EXTENSIONS = {'sql', 'backup'}
+    
+    # Redis Configuration (optional)
+    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
