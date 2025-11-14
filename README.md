@@ -11,6 +11,8 @@ Jalankan perintah berikut secara berurutan di terminal:
 ```bash
 git clone https://github.com/daranett/project-radius.git
 cd project-radius
+chmod 640 freeradius-config/mods-enabled/sql
+chmod 755 freeradius-config
 docker compose up -d --build
 docker compose ps
 docker compose logs -f
