@@ -1,12 +1,9 @@
 {% extends "base.html" %}
-
 {% block title %}Backup & Restore - RADIUS Manager{% endblock %}
 {% block page_title %}Backup & Restore{% endblock %}
 {% block page_subtitle %}Database Backup Management & Recovery{% endblock %}
-
 {% block content %}
 <div class="fade-in">
-    <!-- Header dengan Actions -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div>
             <h2 class="text-xl font-semibold text-gray-800">Database Backup Management</h2>
@@ -24,7 +21,6 @@
         </div>
     </div>
 
-    <!-- Warning Info -->
     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
         <div class="flex">
             <div class="flex-shrink-0">
@@ -44,7 +40,6 @@
         </div>
     </div>
 
-    <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
             <div class="flex items-center justify-between">
@@ -57,7 +52,7 @@
                 </div>
             </div>
         </div>
-        
+       
         <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
             <div class="flex items-center justify-between">
                 <div>
@@ -69,7 +64,7 @@
                 </div>
             </div>
         </div>
-        
+       
         <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
             <div class="flex items-center justify-between">
                 <div>
@@ -81,7 +76,7 @@
                 </div>
             </div>
         </div>
-        
+       
         <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
             <div class="flex items-center justify-between">
                 <div>
@@ -95,7 +90,6 @@
         </div>
     </div>
 
-    <!-- Backups Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <div class="flex items-center justify-between">
@@ -105,23 +99,15 @@
                 </button>
             </div>
         </div>
-        
+       
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Filename
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Created At
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Size
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions
-                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filename</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="backupsTable" class="bg-white divide-y divide-gray-200">
@@ -146,36 +132,16 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        
         <form id="uploadForm" enctype="multipart/form-data">
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Select Backup File (.sql or .backup)
-                </label>
-                <input type="file" id="backupFile" accept=".sql,.backup" required
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select Backup File (.sql)</label>
+                <input type="file" id="backupFile" accept=".sql" required
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                <p class="text-xs text-gray-500 mt-2">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Maximum file size: 100 MB
-                </p>
+                <p class="text-xs text-gray-500 mt-2">Only .sql files are allowed</p>
             </div>
-            
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p class="text-xs text-blue-700">
-                    <i class="fas fa-shield-alt mr-1"></i>
-                    Only upload backup files from trusted sources
-                </p>
-            </div>
-            
             <div class="flex space-x-3">
-                <button type="button" onclick="hideUploadModal()" 
-                        class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                    Cancel
-                </button>
-                <button type="submit" 
-                        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
-                    <i class="fas fa-upload mr-2"></i>Upload
-                </button>
+                <button type="button" onclick="hideUploadModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+                <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">Upload</button>
             </div>
         </form>
     </div>
@@ -189,27 +155,15 @@
                 <i class="fas fa-exclamation-triangle text-red-600 text-3xl"></i>
             </div>
             <h3 class="text-lg font-medium text-gray-900 mb-2">Restore Database?</h3>
-            <p class="text-sm text-gray-600 mb-4">
-                This will restore the database from:
-            </p>
+            <p class="text-sm text-gray-600 mb-4">This will restore the database from:</p>
             <p class="text-sm font-semibold text-gray-800 mb-4" id="restoreFilename">-</p>
             <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                <p class="text-xs text-red-700 font-medium">
-                    <i class="fas fa-exclamation-circle mr-1"></i>
-                    WARNING: This will overwrite ALL current data!
-                </p>
+                <p class="text-xs text-red-700 font-medium">WARNING: This will overwrite ALL current data!</p>
             </div>
         </div>
-        
         <div class="flex space-x-3 mt-6">
-            <button type="button" onclick="hideRestoreModal()" 
-                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                Cancel
-            </button>
-            <button type="button" onclick="confirmRestore()" 
-                    class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
-                <i class="fas fa-undo mr-2"></i>Restore Now
-            </button>
+            <button type="button" onclick="hideRestoreModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+            <button type="button" onclick="confirmRestore()" class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">Restore Now</button>
         </div>
     </div>
 </div>
@@ -217,41 +171,33 @@
 
 {% block scripts %}
 <script>
-let backupToRestore = null;
-
-// Load backups on page load
+// Tidak pakai variabel global backupToRestore lagi → lebih aman
 document.addEventListener('DOMContentLoaded', function() {
     loadBackups();
 });
 
-// Load backups list
 async function loadBackups() {
     try {
         const response = await fetch('/api/backup/list');
         const data = await response.json();
-        
-        if (!data.success) {
+       
+        if (data.success) {
+            const backups = data.backups || [];
+            updateStatistics(backups);
+            renderBackupsTable(backups);
+        } else {
             showNotification('Error loading backups: ' + data.error, 'error');
-            return;
         }
-        
-        const backups = data.backups || [];
-        updateStatistics(backups);
-        renderBackupsTable(backups);
-        
     } catch (error) {
-        console.error('Error loading backups:', error);
         showNotification('Error loading backups', 'error');
     }
 }
 
-// Update statistics
 function updateStatistics(backups) {
     document.getElementById('totalBackups').textContent = backups.length;
-    
+   
     if (backups.length > 0) {
         document.getElementById('latestBackup').textContent = backups[0].created_at;
-        
         const totalSize = backups.reduce((sum, b) => sum + b.size, 0);
         document.getElementById('totalSize').textContent = formatBytes(totalSize);
     } else {
@@ -260,10 +206,9 @@ function updateStatistics(backups) {
     }
 }
 
-// Render backups table
 function renderBackupsTable(backups) {
     const tbody = document.getElementById('backupsTable');
-    
+   
     if (backups.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -276,38 +221,28 @@ function renderBackupsTable(backups) {
         `;
         return;
     }
-    
+   
     tbody.innerHTML = backups.map(backup => `
         <tr class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                     <i class="fas fa-file-archive text-blue-600 mr-3 text-lg"></i>
-                    <div>
-                        <div class="text-sm font-medium text-gray-900">${backup.filename}</div>
-                    </div>
+                    <div class="text-sm font-medium text-gray-900">${backup.filename}</div>
                 </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">${backup.created_at}</div>
-            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${backup.created_at}</td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="text-sm font-medium text-gray-700">${backup.size_human}</span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
-                    <button onclick="downloadBackup('${backup.filename}')" 
-                            class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded transition-colors"
-                            title="Download">
+                    <button onclick="downloadBackup('${backup.filename}')" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded transition-colors">
                         <i class="fas fa-download mr-1"></i>Download
                     </button>
-                    <button onclick="showRestoreModal('${backup.filename}')" 
-                            class="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded transition-colors"
-                            title="Restore">
+                    <button onclick="showRestoreModal('${backup.filename}')" class="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded transition-colors">
                         <i class="fas fa-undo mr-1"></i>Restore
                     </button>
-                    <button onclick="deleteBackup('${backup.filename}')" 
-                            class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition-colors"
-                            title="Delete">
+                    <button onclick="deleteBackup('${backup.filename}')" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition-colors">
                         <i class="fas fa-trash mr-1"></i>Delete
                     </button>
                 </div>
@@ -316,20 +251,12 @@ function renderBackupsTable(backups) {
     `).join('');
 }
 
-// Create backup
 async function createBackup() {
     if (!confirm('Create a new database backup?')) return;
-    
     showNotification('Creating backup... Please wait', 'info');
-    
     try {
-        const response = await fetch('/api/backup/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
+        const response = await fetch('/api/backup/create', {method: 'POST'});
         const data = await response.json();
-        
         if (data.success) {
             showNotification('Backup created successfully: ' + data.filename, 'success');
             loadBackups();
@@ -337,84 +264,72 @@ async function createBackup() {
             showNotification('Error creating backup: ' + data.error, 'error');
         }
     } catch (error) {
-        console.error('Error creating backup:', error);
         showNotification('Error creating backup', 'error');
     }
 }
 
-// Download backup
 function downloadBackup(filename) {
     window.location.href = `/api/backup/download/${filename}`;
-    showNotification('Downloading: ' + filename, 'info');
 }
 
-// Show restore modal
 function showRestoreModal(filename) {
-    backupToRestore = filename;
     document.getElementById('restoreFilename').textContent = filename;
     document.getElementById('restoreModal').classList.remove('hidden');
 }
 
-// Hide restore modal
 function hideRestoreModal() {
-    backupToRestore = null;
     document.getElementById('restoreModal').classList.add('hidden');
+    document.getElementById('restoreFilename').textContent = '-';
 }
 
-// Confirm restore
+// PERBAIKAN UTAMA: ambil filename langsung dari modal, bukan variabel global
 async function confirmRestore() {
-    if (!backupToRestore) return;
+    const filename = document.getElementById('restoreFilename').textContent.trim();
     
+    if (!filename || filename === '-' || filename === '') {
+        showNotification('No backup file selected', 'error');
+        return;
+    }
+
     hideRestoreModal();
     showNotification('Restoring database... This may take a few minutes', 'info');
-    
+
     try {
         const response = await fetch('/api/backup/restore', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: backupToRestore })
+            body: JSON.stringify({ filename: filename })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
-            showNotification(data.message, 'success');
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
+            showNotification('Database restored successfully! Reloading...', 'success');
+            setTimeout(() => { window.location.reload(); }, 3000);
         } else {
-            showNotification('Error restoring backup: ' + data.error, 'error');
+            showNotification('Restore failed: ' + data.error, 'error');
         }
     } catch (error) {
-        console.error('Error restoring backup:', error);
         showNotification('Error restoring backup', 'error');
     }
 }
 
-// Delete backup
 async function deleteBackup(filename) {
-    if (!confirm(`Delete backup: ${filename}?\n\nThis action cannot be undone.`)) return;
-    
+    if (!confirm(`Delete backup: ${filename}?`)) return;
     try {
-        const response = await fetch(`/api/backup/delete/${filename}`, {
-            method: 'DELETE'
-        });
-        
+        const response = await fetch(`/api/backup/delete/${filename}`, {method: 'DELETE'});
         const data = await response.json();
-        
         if (data.success) {
             showNotification('Backup deleted successfully', 'success');
             loadBackups();
         } else {
-            showNotification('Error deleting backup: ' + data.error, 'error');
+            showNotification('Error: ' + data.error, 'error');
         }
     } catch (error) {
-        console.error('Error deleting backup:', error);
         showNotification('Error deleting backup', 'error');
     }
 }
 
-// Upload backup
 function uploadBackup() {
     document.getElementById('uploadModal').classList.remove('hidden');
 }
@@ -424,45 +339,32 @@ function hideUploadModal() {
     document.getElementById('uploadForm').reset();
 }
 
-// Handle upload form
 document.getElementById('uploadForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
     const fileInput = document.getElementById('backupFile');
     const file = fileInput.files[0];
-    
-    if (!file) {
-        showNotification('Please select a file', 'error');
-        return;
-    }
-    
+    if (!file) return;
+
     const formData = new FormData();
-    formData.append('file', file);
-    
+    formData.append('backup_file', file);
+
     showNotification('Uploading backup...', 'info');
-    
+
     try {
-        const response = await fetch('/api/backup/upload', {
-            method: 'POST',
-            body: formData
-        });
-        
+        const response = await fetch('/api/backup/upload', {method: 'POST', body: formData});
         const data = await response.json();
-        
         if (data.success) {
-            showNotification('Backup uploaded successfully: ' + data.filename, 'success');
+            showNotification('Backup uploaded successfully', 'success');
             hideUploadModal();
             loadBackups();
         } else {
-            showNotification('Error uploading backup: ' + data.error, 'error');
+            showNotification('Error: ' + data.error, 'error');
         }
     } catch (error) {
-        console.error('Error uploading backup:', error);
         showNotification('Error uploading backup', 'error');
     }
 });
 
-// Format bytes
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -471,34 +373,12 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Notification
 function showNotification(message, type = 'info') {
-    const colors = {
-        success: 'bg-green-500',
-        error: 'bg-red-500',
-        warning: 'bg-yellow-500',
-        info: 'bg-blue-500'
-    };
-    
     const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 fade-in`;
-    notification.innerHTML = `
-        <div class="flex items-center space-x-2">
-            <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation' : 'info'}-circle"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    
+    notification.className = `fixed top-4 right-4 bg-${type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue'}-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity`;
+    notification.innerHTML = `<div class="flex items-center space-x-2"><i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i><span>${message}</span></div>`;
     document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 5000);
+    setTimeout(() => notification.remove(), 5000);
 }
 </script>
 {% endblock %}
