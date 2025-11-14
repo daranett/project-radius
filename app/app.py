@@ -9,7 +9,9 @@ from routeros_api.exceptions import RouterOsApiConnectionError, RouterOsApiCommu
 from datetime import datetime
 import traceback
 import os
+import subprocess
 from werkzeug.utils import secure_filename
+from flask import send_file
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'radius-dashboard-secret-2024'
@@ -30,6 +32,32 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# === BACKUP & RESTORE CONFIGURATION ===
+BACKUP_FOLDER = 'backups'
+ALLOWED_BACKUP_EXTENSIONS = {'sql', 'backup'}
+
+def ensure_backup_folder():
+    """Ensure backup folder exists"""
+    if not os.path.exists(BACKUP_FOLDER):
+        os.makedirs(BACKUP_FOLDER)
+        print(f"Created backup folder: {BACKUP_FOLDER}")
+
+def allowed_backup_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_BACKUP_EXTENSIONS
+def format_file_size(size_bytes):
+    """Format file size to human readable"""
+    if size_bytes == 0:
+        return '0 B'
+    
+    size_names = ['B', 'KB', 'MB', 'GB']
+    i = 0
+    while size_bytes >= 1024 and i < len(size_names) - 1:
+        size_bytes /= 1024.0
+        i += 1
+    
+    return f"{size_bytes:.2f} {size_names[i]}"
 
 # === LOGIN REQUIRED DECORATOR ===
 def login_required(f):
@@ -307,6 +335,262 @@ def calculate_rates(nas_id, interface_name, current_rx, current_tx):
         return rx_rate, tx_rate
     else:
         return 0, 0
+
+# === BACKUP & RESTORE ROUTES ===
+import subprocess
+import os
+from datetime import datetime
+import tempfile
+
+@app.route('/backup')
+@login_required
+def backup_page():
+    return render_template('backup/index.html')
+
+@app.route('/api/backup/create', methods=['POST'])
+@login_required
+def api_create_backup():
+    """Create database backup"""
+    try:
+        # Generate backup filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f'radius_backup_{timestamp}.sql'
+        backup_dir = '/app/backups'
+        
+        # Create backup directory if not exists
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        backup_path = os.path.join(backup_dir, backup_filename)
+        
+        # PostgreSQL dump command
+        dump_cmd = [
+            'pg_dump',
+            '-h', app.config['DB_HOST'],
+            '-U', app.config['DB_USER'],
+            '-d', app.config['DB_NAME'],
+            '-F', 'p',  # Plain text format
+            '-f', backup_path
+        ]
+        
+        # Set password environment variable
+        env = os.environ.copy()
+        env['PGPASSWORD'] = app.config['DB_PASSWORD']
+        
+        # Execute backup
+        result = subprocess.run(
+            dump_cmd,
+            env=env,
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            # Get file size
+            file_size = os.path.getsize(backup_path)
+            file_size_mb = file_size / (1024 * 1024)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Backup created successfully',
+                'filename': backup_filename,
+                'size': f'{file_size_mb:.2f} MB',
+                'path': backup_path
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Backup failed: {result.stderr}'
+            }), 500
+            
+    except Exception as e:
+        print(f"Backup error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/backup/list')
+@login_required
+def api_backup_list():
+    """List all available backups"""
+    try:
+        ensure_backup_folder()
+        
+        backups = []
+        for filename in os.listdir(BACKUP_FOLDER):
+            if allowed_backup_file(filename):
+                filepath = os.path.join(BACKUP_FOLDER, filename)
+                file_stat = os.stat(filepath)
+                backups.append({
+                    'filename': filename,
+                    'size': file_stat.st_size,
+                    'created_at': datetime.fromtimestamp(file_stat.st_ctime).strftime('%Y-%m-%d %H:%M:%S'),
+                    'size_human': format_file_size(file_stat.st_size)
+                })
+        
+        # Sort by created date (newest first)
+        backups.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        return jsonify({'success': True, 'backups': backups})
+    except Exception as e:
+        print(f"Error listing backups: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/backup/download/<filename>')
+@login_required
+def api_download_backup(filename):
+    """Download backup file"""
+    try:
+        backup_dir = '/app/backups'
+        filepath = os.path.join(backup_dir, filename)
+        
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'Backup file not found'}), 404
+        
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/sql'
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/backup/restore', methods=['POST'])
+@login_required
+def api_restore_backup():
+    """Restore database from backup"""
+    try:
+        data = get_request_data()
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({
+                'success': False,
+                'error': 'Filename is required'
+            }), 400
+        
+        backup_dir = '/app/backups'
+        backup_path = os.path.join(backup_dir, filename)
+        
+        if not os.path.exists(backup_path):
+            return jsonify({
+                'success': False,
+                'error': 'Backup file not found'
+            }), 404
+        
+        # PostgreSQL restore command
+        restore_cmd = [
+            'psql',
+            '-h', app.config['DB_HOST'],
+            '-U', app.config['DB_USER'],
+            '-d', app.config['DB_NAME'],
+            '-f', backup_path
+        ]
+        
+        # Set password environment variable
+        env = os.environ.copy()
+        env['PGPASSWORD'] = app.config['DB_PASSWORD']
+        
+        # Execute restore
+        result = subprocess.run(
+            restore_cmd,
+            env=env,
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            return jsonify({
+                'success': True,
+                'message': 'Database restored successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Restore failed: {result.stderr}'
+            }), 500
+            
+    except Exception as e:
+        print(f"Restore error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/backup/delete/<filename>', methods=['DELETE'])
+@login_required
+def api_delete_backup(filename):
+    """Delete backup file"""
+    try:
+        backup_dir = '/app/backups'
+        filepath = os.path.join(backup_dir, filename)
+        
+        if not os.path.exists(filepath):
+            return jsonify({
+                'success': False,
+                'error': 'Backup file not found'
+            }), 404
+        
+        os.remove(filepath)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Backup deleted successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/backup/upload', methods=['POST'])
+@login_required
+def api_upload_backup():
+    """Upload backup file"""
+    try:
+        if 'backup_file' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'No file uploaded'
+            }), 400
+        
+        file = request.files['backup_file']
+        
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'No file selected'
+            }), 400
+        
+        if not file.filename.endswith('.sql'):
+            return jsonify({
+                'success': False,
+                'error': 'Only .sql files are allowed'
+            }), 400
+        
+        backup_dir = '/app/backups'
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # Save file
+        filepath = os.path.join(backup_dir, secure_filename(file.filename))
+        file.save(filepath)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Backup uploaded successfully',
+            'filename': file.filename
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/mikrotik/<int:nas_id>/monitoring/realtime')
 @login_required
