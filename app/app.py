@@ -12,6 +12,7 @@ import os
 import subprocess
 from werkzeug.utils import secure_filename
 from flask import send_file
+import redis
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'radius-dashboard-secret-2024'
@@ -347,6 +348,37 @@ import tempfile
 def backup_page():
     return render_template('backup/index.html')
 
+@app.route('/api/backup/check-folder')
+@login_required
+def api_check_backup_folder():
+    """Check backup folder status"""
+    try:
+        ensure_backup_folder()
+        
+        folder_info = {
+            'backup_folder': BACKUP_FOLDER,
+            'absolute_path': os.path.abspath(BACKUP_FOLDER),
+            'exists': os.path.exists(BACKUP_FOLDER),
+            'is_directory': os.path.isdir(BACKUP_FOLDER),
+            'permissions': oct(os.stat(BACKUP_FOLDER).st_mode)[-3:],
+            'files': []
+        }
+        
+        if os.path.exists(BACKUP_FOLDER):
+            for f in os.listdir(BACKUP_FOLDER):
+                filepath = os.path.join(BACKUP_FOLDER, f)
+                if os.path.isfile(filepath):
+                    stat = os.stat(filepath)
+                    folder_info['files'].append({
+                        'name': f,
+                        'size': stat.st_size,
+                        'created': datetime.fromtimestamp(stat.st_ctime).isoformat()
+                    })
+        
+        return jsonify(folder_info)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/backup/create', methods=['POST'])
 @login_required
 def api_create_backup():
@@ -462,62 +494,71 @@ def api_download_backup(filename):
 @app.route('/api/backup/restore', methods=['POST'])
 @login_required
 def api_restore_backup():
-    """Restore database from backup"""
+    """Restore database from backup - FIXED VERSION"""
     try:
-        data = get_request_data()
-        filename = data.get('filename')
+        print("DEBUG: Restore backup request received")
+        print(f"DEBUG: Content-Type: {request.content_type}")
+        print(f"DEBUG: Request data: {request.data}")
         
+        # Handle both JSON and form data
+        if request.content_type and 'application/json' in request.content_type:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+        
+        print(f"DEBUG: Parsed data: {data}")
+        
+        filename = data.get('filename')
         if not filename:
             return jsonify({
-                'success': False,
+                'success': False, 
                 'error': 'Filename is required'
             }), 400
         
-        backup_dir = '/app/backups'
-        backup_path = os.path.join(backup_dir, filename)
+        # Pastikan folder backup ada
+        ensure_backup_folder()
+        backup_path = os.path.join(BACKUP_FOLDER, filename)
+        
+        print(f"DEBUG: Looking for backup file: {backup_path}")
         
         if not os.path.exists(backup_path):
             return jsonify({
-                'success': False,
-                'error': 'Backup file not found'
+                'success': False, 
+                'error': f'Backup file not found: {filename}'
             }), 404
         
-        # PostgreSQL restore command
-        restore_cmd = [
+        # Restore database
+        env = os.environ.copy()
+        env['PGPASSWORD'] = app.config['DB_PASSWORD']
+        
+        print(f"DEBUG: Starting database restore...")
+        
+        result = subprocess.run([
             'psql',
             '-h', app.config['DB_HOST'],
             '-U', app.config['DB_USER'],
             '-d', app.config['DB_NAME'],
             '-f', backup_path
-        ]
+        ], env=env, capture_output=True, text=True)
         
-        # Set password environment variable
-        env = os.environ.copy()
-        env['PGPASSWORD'] = app.config['DB_PASSWORD']
-        
-        # Execute restore
-        result = subprocess.run(
-            restore_cmd,
-            env=env,
-            capture_output=True,
-            text=True
-        )
+        print(f"DEBUG: Restore process completed with return code: {result.returncode}")
         
         if result.returncode == 0:
             return jsonify({
-                'success': True,
+                'success': True, 
                 'message': 'Database restored successfully'
             })
         else:
+            print(f"DEBUG: Restore error: {result.stderr}")
             return jsonify({
-                'success': False,
+                'success': False, 
                 'error': f'Restore failed: {result.stderr}'
             }), 500
             
     except Exception as e:
-        print(f"Restore error: {str(e)}")
+        print(f"DEBUG: Exception in restore: {str(e)}")
         return jsonify({
-            'success': False,
+            'success': False, 
             'error': str(e)
         }), 500
 
@@ -551,46 +592,136 @@ def api_delete_backup(filename):
 @app.route('/api/backup/upload', methods=['POST'])
 @login_required
 def api_upload_backup():
-    """Upload backup file"""
+    """Upload backup file - ENHANCED VERSION"""
     try:
-        if 'backup_file' not in request.files:
+        print("DEBUG: Starting backup upload process...")
+        print(f"DEBUG: Request method: {request.method}")
+        print(f"DEBUG: Content type: {request.content_type}")
+        print(f"DEBUG: Request files keys: {list(request.files.keys())}")
+        print(f"DEBUG: Request form keys: {list(request.form.keys())}")
+        
+        # Cari file dengan berbagai kemungkinan key
+        file = None
+        possible_keys = ['backup_file', 'file', 'upload_file', 'backup']
+        
+        for key in possible_keys:
+            if key in request.files:
+                file = request.files[key]
+                print(f"DEBUG: Found file with key: {key}")
+                break
+        
+        if not file:
+            print("DEBUG: No file found with any known keys")
             return jsonify({
                 'success': False,
-                'error': 'No file uploaded'
+                'error': 'No file uploaded. Please use form field: backup_file'
             }), 400
         
-        file = request.files['backup_file']
+        print(f"DEBUG: File details - filename: '{file.filename}', content_type: '{file.content_type}'")
         
-        if file.filename == '':
+        if file.filename == '' or not file.filename:
+            print("DEBUG: Empty filename")
             return jsonify({
                 'success': False,
                 'error': 'No file selected'
             }), 400
         
-        if not file.filename.endswith('.sql'):
+        # Validasi file
+        if not allowed_backup_file(file.filename):
+            print(f"DEBUG: Invalid file type: {file.filename}")
             return jsonify({
                 'success': False,
-                'error': 'Only .sql files are allowed'
+                'error': f'Only {ALLOWED_BACKUP_EXTENSIONS} files are allowed. Received: {file.filename}'
             }), 400
         
-        backup_dir = '/app/backups'
-        os.makedirs(backup_dir, exist_ok=True)
+        # Pastikan backup folder ada
+        ensure_backup_folder()
+        backup_dir = BACKUP_FOLDER
         
-        # Save file
-        filepath = os.path.join(backup_dir, secure_filename(file.filename))
+        print(f"DEBUG: Backup directory: {backup_dir}")
+        print(f"DEBUG: Directory exists: {os.path.exists(backup_dir)}")
+        print(f"DEBUG: Directory permissions: {oct(os.stat(backup_dir).st_mode)[-3:]}")
+        
+        # Secure filename
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(backup_dir, filename)
+        
+        # Cek jika file sudah ada
+        if os.path.exists(filepath):
+            print(f"DEBUG: File already exists, adding timestamp")
+            name, ext = os.path.splitext(filename)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"{name}_{timestamp}{ext}"
+            filepath = os.path.join(backup_dir, filename)
+        
+        print(f"DEBUG: Final filepath: {filepath}")
+        
+        # Simpan file
         file.save(filepath)
         
-        return jsonify({
-            'success': True,
-            'message': 'Backup uploaded successfully',
-            'filename': file.filename
-        })
+        # Verifikasi
+        if os.path.exists(filepath):
+            file_size = os.path.getsize(filepath)
+            print(f"DEBUG: File saved successfully - Size: {file_size} bytes")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Backup uploaded successfully',
+                'filename': filename,
+                'size': format_file_size(file_size),
+                'path': filepath
+            })
+        else:
+            print("DEBUG: File save verification failed")
+            return jsonify({
+                'success': False,
+                'error': 'File failed to save on server'
+            }), 500
         
     except Exception as e:
+        print(f"DEBUG: Exception during upload: {str(e)}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Upload failed: {str(e)}'
         }), 500
+
+@app.route('/api/backup/debug')
+@login_required
+def api_backup_debug():
+    """Debug backup folder status"""
+    try:
+        ensure_backup_folder()
+        
+        debug_info = {
+            'backup_folder': BACKUP_FOLDER,
+            'folder_exists': os.path.exists(BACKUP_FOLDER),
+            'folder_path': os.path.abspath(BACKUP_FOLDER),
+            'files_in_folder': [],
+            'permissions': {
+                'readable': os.access(BACKUP_FOLDER, os.R_OK),
+                'writable': os.access(BACKUP_FOLDER, os.W_OK),
+                'executable': os.access(BACKUP_FOLDER, os.X_OK)
+            }
+        }
+        
+        if os.path.exists(BACKUP_FOLDER):
+            for filename in os.listdir(BACKUP_FOLDER):
+                filepath = os.path.join(BACKUP_FOLDER, filename)
+                if os.path.isfile(filepath):
+                    file_stat = os.stat(filepath)
+                    debug_info['files_in_folder'].append({
+                        'filename': filename,
+                        'size': file_stat.st_size,
+                        'size_human': format_file_size(file_stat.st_size),
+                        'created': datetime.fromtimestamp(file_stat.st_ctime).strftime('%Y-%m-%d %H:%M:%S')
+                    })
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/mikrotik/<int:nas_id>/monitoring/realtime')
 @login_required
