@@ -331,6 +331,14 @@
                 </div>
             </div>
 
+            <a href="/backup" class="nav-item {% if request.path == '/backup' %}active{% endif %} flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer group">
+            <div class="w-10 h-10 flex items-center justify-center">
+            <i class="fas fa-database nav-icon text-xl text-cyan-600"></i>
+            </div>
+            <span class="nav-text flex-1 font-medium text-gray-700">Backup & Restore</span>
+            <span class="tooltip">Backup & Restore</span>
+            </a>
+
             <a href="/profile" class="nav-item {% if request.path == '/profile' %}active{% endif %} flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer group">
                 <div class="w-10 h-10 flex items-center justify-center">
                     <i class="fas fa-user-cog nav-icon text-xl text-gray-600"></i>
