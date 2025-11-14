@@ -29,6 +29,7 @@ services:
       - ./app:/app
       - ./uploads:/app/static/uploads
       - ./logs:/app/logs
+      - ./backups:/app/backups
     networks:
       - radius-net
     depends_on:
