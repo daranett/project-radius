@@ -10,6 +10,8 @@ import os
 import subprocess
 from werkzeug.utils import secure_filename
 from flask import send_file
+import re
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'radius-dashboard-secret-2024'
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -18,15 +20,19 @@ app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config.from_object(Config)
+
 # === BACKUP & RESTORE CONFIGURATION ===
 BACKUP_FOLDER = 'backups'
 ALLOWED_BACKUP_EXTENSIONS = {'sql', 'backup'}
+
 def ensure_backup_folder():
     if not os.path.exists(BACKUP_FOLDER):
         os.makedirs(BACKUP_FOLDER)
+
 def allowed_backup_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_BACKUP_EXTENSIONS
+
 def format_file_size(size_bytes):
     if size_bytes == 0:
         return '0 B'
@@ -38,6 +44,7 @@ def format_file_size(size_bytes):
         i += 1
    
     return f"{size_bytes:.2f} {size_names[i]}"
+
 # === LOGIN REQUIRED DECORATOR ===
 def login_required(f):
     @functools.wraps(f)
@@ -46,6 +53,7 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
 # === DATABASE CONNECTION ===
 def get_db_connection():
     return psycopg2.connect(
@@ -55,6 +63,7 @@ def get_db_connection():
         password=app.config['DB_PASSWORD'],
         port=app.config['DB_PORT']
     )
+
 def execute_query(query, params=None, fetch=True):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -73,6 +82,7 @@ def execute_query(query, params=None, fetch=True):
     finally:
         cur.close()
         conn.close()
+
 # === HELPER FUNCTION FOR JSON REQUESTS ===
 def get_request_data():
     try:
@@ -87,6 +97,7 @@ def get_request_data():
     except Exception as e:
         print(f"DEBUG: Error getting request data: {str(e)}")
         return {}
+
 # === HELPER FUNCTION FOR DATA LIMIT CONVERSION ===
 def convert_data_limit_to_bytes(data_limit_str):
     """Convert data limit string (e.g., '10GB', '500MB') to bytes"""
@@ -123,11 +134,13 @@ def convert_data_limit_to_bytes(data_limit_str):
     except Exception as e:
         print(f"DEBUG: Error converting data limit: {str(e)}")
         return None
+
 # === BACKUP & RESTORE ROUTES ===
 @app.route('/backup')
 @login_required
 def backup_page():
     return render_template('backup/index.html')
+
 @app.route('/api/backup/check-folder')
 @login_required
 def api_check_backup_folder():
@@ -157,6 +170,7 @@ def api_check_backup_folder():
         return jsonify(folder_info)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 @app.route('/api/backup/create', methods=['POST'])
 @login_required
 def api_create_backup():
@@ -210,6 +224,7 @@ def api_create_backup():
             'success': False,
             'error': str(e)
         }), 500
+
 @app.route('/api/backup/list')
 @login_required
 def api_backup_list():
@@ -234,6 +249,7 @@ def api_backup_list():
     except Exception as e:
         print(f"Error listing backups: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/backup/download/<filename>')
 @login_required
 def api_download_backup(filename):
@@ -253,6 +269,7 @@ def api_download_backup(filename):
        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 @app.route('/api/backup/restore', methods=['POST'])
 @login_required
 def api_restore_backup():
@@ -307,6 +324,7 @@ def api_restore_backup():
             'success': False,
             'error': str(e)
         }), 500
+
 @app.route('/api/backup/delete/<filename>', methods=['DELETE'])
 @login_required
 def api_delete_backup(filename):
@@ -332,6 +350,7 @@ def api_delete_backup(filename):
             'success': False,
             'error': str(e)
         }), 500
+
 @app.route('/api/backup/upload', methods=['POST'])
 @login_required
 def api_upload_backup():
@@ -398,6 +417,7 @@ def api_upload_backup():
             'success': False,
             'error': f'Upload failed: {str(e)}'
         }), 500
+
 @app.route('/api/backup/debug')
 @login_required
 def api_backup_debug():
@@ -432,6 +452,7 @@ def api_backup_debug():
        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 # === AUTHENTICATION ROUTES ===
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -454,16 +475,19 @@ def login():
             flash('Invalid username or password', 'error')
    
     return render_template('login.html')
+
 @app.route('/logout')
 def logout():
     session.clear()
     flash('You have been logged out', 'info')
     return redirect(url_for('login'))
+
 # === PROFILE & PASSWORD ROUTES ===
 @app.route('/profile')
 @login_required
 def profile_page():
     return render_template('profile.html')
+
 @app.route('/api/change-password', methods=['POST'])
 @login_required
 def api_change_password():
@@ -485,29 +509,35 @@ def api_change_password():
        
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
 # === MAIN ROUTES ===
 @app.route('/')
 @login_required
 def dashboard():
     return render_template('dashboard.html')
+
 @app.route('/nas')
 @login_required
 def nas_page():
     return render_template('nas.html')
+
 @app.route('/users')
 @login_required
 def users_page():
     return render_template('users.html')
+
 @app.route('/sessions')
 @login_required
 def sessions_page():
     return render_template('sessions.html')
+
 @app.route('/logs')
 @login_required
 def logs_page():
     return render_template('logs.html')
+
 # === API ROUTES ===
-@app.route('/api/stats')
+\@app.route('/api/stats')
 def api_stats():
     try:
         total_users = execute_query("SELECT COUNT(*) as count FROM radcheck")[0]['count']
@@ -525,6 +555,7 @@ def api_stats():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 @app.route('/api/nas')
 def api_nas():
     try:
@@ -534,6 +565,7 @@ def api_nas():
         if 'relation "nas" does not exist' in str(e):
             return jsonify([])
         return jsonify({'error': str(e)}), 500
+
 @app.route('/api/nas/add', methods=['POST'])
 def api_add_nas():
     try:
@@ -558,6 +590,7 @@ def api_add_nas():
         return jsonify({'success': True, 'message': 'NAS added successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/nas/delete/<int:nas_id>', methods=['DELETE'])
 def api_delete_nas(nas_id):
     try:
@@ -565,6 +598,7 @@ def api_delete_nas(nas_id):
         return jsonify({'success': True, 'message': 'NAS deleted successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/users')
 def api_users():
     try:
@@ -588,17 +622,20 @@ def api_users():
         return jsonify(users)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 @app.route('/api/users/add', methods=['POST'])
 def api_add_user():
     try:
         data = get_request_data()
         print(f"DEBUG: Starting to add user: {data['username']}")
+        
         # Insert password ke radcheck
         execute_query("""
             INSERT INTO radcheck (username, attribute, op, value)
             VALUES (%s, 'Cleartext-Password', ':=', %s)
         """, (data['username'], data['password']), fetch=False)
         print(f"DEBUG: radcheck inserted for {data['username']}")
+        
         # PPP attributes
         ppp_attributes = [
             ('Framed-Protocol', ':=', 'PPP'),
@@ -611,6 +648,7 @@ def api_add_user():
                 VALUES (%s, %s, %s, %s)
             """, (data['username'], attr, op, value), fetch=False)
         print(f"DEBUG: PPP attributes added for {data['username']}")
+        
         # IP Address
         if data.get('ip_address'):
             execute_query("""
@@ -618,52 +656,30 @@ def api_add_user():
                 VALUES (%s, 'Framed-IP-Address', ':=', %s)
             """, (data['username'], data['ip_address']), fetch=False)
             print(f"DEBUG: IP address {data['ip_address']} added")
-        # ✨ RATE LIMIT DENGAN PRIORITY & BURST
+        
+        # Rate Limit - Using the value from the form preview
         if data.get('rate_limit'):
-            rate_limit = data['rate_limit'] # e.g., "10M/10M"
-            priority = data.get('priority', '5') # Default priority 5
-           
-            # Parse rate limit
-            parts = rate_limit.split('/')
-            if len(parts) == 2:
-                down_speed = parts[0].strip()
-                up_speed = parts[1].strip()
-               
-                # Extract numeric value
-                down_val = int(''.join(filter(str.isdigit, down_speed)))
-                up_val = int(''.join(filter(str.isdigit, up_speed)))
-                unit_down = ''.join(filter(str.isalpha, down_speed)) or 'M'
-                unit_up = ''.join(filter(str.isalpha, up_speed)) or 'M'
-               
-                # Calculate burst (2x speed) and threshold (50% speed)
-                burst_down = f"{down_val * 2}{unit_down}"
-                burst_up = f"{up_val * 2}{unit_up}"
-                threshold_down = f"{max(1, down_val // 2)}{unit_down}"
-                threshold_up = f"{max(1, up_val // 2)}{unit_up}"
-               
-                # Format lengkap: speed burst threshold burst_time priority
-                full_rate_limit = f"{rate_limit} {burst_down}/{burst_up} {threshold_down}/{threshold_up} 8/8 {priority}/{priority}"
-            else:
-                # Fallback jika format tidak sesuai
-                full_rate_limit = rate_limit
-           
+            rate_limit = data['rate_limit']
             execute_query("""
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Mikrotik-Rate-Limit', ':=', %s)
-            """, (data['username'], full_rate_limit), fetch=False)
-            print(f"DEBUG: Rate limit added: {full_rate_limit}")
+            """, (data['username'], rate_limit), fetch=False)
+            print(f"DEBUG: Rate limit added: {rate_limit}")
+        
         # Session Timeout
         if data.get('session_timeout'):
             execute_query("""
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Session-Timeout', ':=', %s)
             """, (data['username'], data['session_timeout']), fetch=False)
+        
         # Idle Timeout
         if data.get('idle_timeout'):
             execute_query("""
                 INSERT INTO radreply (username, attribute, op, value)
                 VALUES (%s, 'Idle-Timeout', ':=', %s)
             """, (data['username'], data['idle_timeout']), fetch=False)
+        
         # Data Limit (convert to bytes)
         if data.get('data_limit'):
             data_limit_bytes = convert_data_limit_to_bytes(data['data_limit'])
@@ -673,60 +689,46 @@ def api_add_user():
                     VALUES (%s, 'Mikrotik-Total-Limit', ':=', %s)
                 """, (data['username'], str(data_limit_bytes)), fetch=False)
                 print(f"DEBUG: Data limit added: {data['data_limit']} = {data_limit_bytes} bytes")
-        print(f"DEBUG: User {data['username']} added SUCCESSFULLY with priority")
-        return jsonify({'success': True, 'message': 'User added successfully with priority settings'})
+        
+        print(f"DEBUG: User {data['username']} added SUCCESSFULLY")
+        return jsonify({'success': True, 'message': 'User added successfully'})
     except Exception as e:
         print(f"DEBUG: ERROR adding user: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/users/update/<username>', methods=['PUT'])
 def api_update_user(username):
     try:
         data = get_request_data()
         print(f"DEBUG: Starting to update user: {username}")
+        
         # Update IP Address
         if data.get('ip_address'):
             execute_query("DELETE FROM radreply WHERE username = %s AND attribute = 'Framed-IP-Address'", (username,), fetch=False)
             execute_query("INSERT INTO radreply (username, attribute, op, value) VALUES (%s, 'Framed-IP-Address', ':=', %s)",
                          (username, data['ip_address']), fetch=False)
             print(f"DEBUG: IP address updated to {data['ip_address']}")
-        # ✨ Update Rate Limit WITH PRIORITY & BURST
+        
+        # Update Rate Limit - Using the value from the form preview
         if data.get('rate_limit'):
             rate_limit = data['rate_limit']
-            priority = data.get('priority', '5')
-           
-            parts = rate_limit.split('/')
-            if len(parts) == 2:
-                down_speed = parts[0].strip()
-                up_speed = parts[1].strip()
-               
-                down_val = int(''.join(filter(str.isdigit, down_speed)))
-                up_val = int(''.join(filter(str.isdigit, up_speed)))
-                unit_down = ''.join(filter(str.isalpha, down_speed)) or 'M'
-                unit_up = ''.join(filter(str.isalpha, up_speed)) or 'M'
-               
-                burst_down = f"{down_val * 2}{unit_down}"
-                burst_up = f"{up_val * 2}{unit_up}"
-                threshold_down = f"{max(1, down_val // 2)}{unit_down}"
-                threshold_up = f"{max(1, up_val // 2)}{unit_up}"
-               
-                full_rate_limit = f"{rate_limit} {burst_down}/{burst_up} {threshold_down}/{threshold_up} 8/8 {priority}/{priority}"
-            else:
-                full_rate_limit = rate_limit
-           
             execute_query("DELETE FROM radreply WHERE username = %s AND attribute = 'Mikrotik-Rate-Limit'", (username,), fetch=False)
             execute_query("INSERT INTO radreply (username, attribute, op, value) VALUES (%s, 'Mikrotik-Rate-Limit', ':=', %s)",
-                         (username, full_rate_limit), fetch=False)
-            print(f"DEBUG: Rate limit updated to {full_rate_limit}")
+                         (username, rate_limit), fetch=False)
+            print(f"DEBUG: Rate limit updated to {rate_limit}")
+        
         # Update Session Timeout
         if data.get('session_timeout'):
             execute_query("DELETE FROM radreply WHERE username = %s AND attribute = 'Session-Timeout'", (username,), fetch=False)
             execute_query("INSERT INTO radreply (username, attribute, op, value) VALUES (%s, 'Session-Timeout', ':=', %s)",
                          (username, data['session_timeout']), fetch=False)
+        
         # Update Idle Timeout
         if data.get('idle_timeout'):
             execute_query("DELETE FROM radreply WHERE username = %s AND attribute = 'Idle-Timeout'", (username,), fetch=False)
             execute_query("INSERT INTO radreply (username, attribute, op, value) VALUES (%s, 'Idle-Timeout', ':=', %s)",
                          (username, data['idle_timeout']), fetch=False)
+        
         # Update Data Limit (convert to bytes)
         if data.get('data_limit'):
             data_limit_bytes = convert_data_limit_to_bytes(data['data_limit'])
@@ -735,11 +737,13 @@ def api_update_user(username):
                 execute_query("INSERT INTO radreply (username, attribute, op, value) VALUES (%s, 'Mikrotik-Total-Limit', ':=', %s)",
                              (username, str(data_limit_bytes)), fetch=False)
                 print(f"DEBUG: Data limit updated: {data['data_limit']} = {data_limit_bytes} bytes")
+        
         print(f"DEBUG: User {username} updated SUCCESSFULLY")
         return jsonify({'success': True, 'message': 'User updated successfully'})
     except Exception as e:
         print(f"DEBUG: ERROR updating user: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/users/delete/<int:user_id>', methods=['DELETE'])
 def api_delete_user(user_id):
     try:
@@ -753,6 +757,7 @@ def api_delete_user(user_id):
             return jsonify({'success': False, 'error': 'User not found'}), 404
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/sessions')
 def api_sessions():
     try:
@@ -782,6 +787,7 @@ def api_sessions():
         return jsonify(sessions)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 @app.route('/api/logs')
 def api_logs():
     try:
@@ -801,8 +807,10 @@ def api_logs():
         return jsonify(logs)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 @app.route('/health')
 def health():
     return 'OK'
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
