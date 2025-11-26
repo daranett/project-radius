@@ -1,9 +1,7 @@
 {% extends "base.html" %}
-
 {% block title %}Users - RADIUS Manager{% endblock %}
 {% block page_title %}Users{% endblock %}
 {% block page_subtitle %}Manage PPPoE Users & Bandwidth Limits{% endblock %}
-
 {% block content %}
 <div class="fade-in">
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -14,7 +12,6 @@
                 <span>Add User</span>
             </button>
         </div>
-
         <div id="usersList" class="space-y-4">
             <div class="text-center py-8">
                 <i class="fas fa-spinner fa-spin text-blue-600 text-2xl mb-2"></i>
@@ -26,14 +23,13 @@
 
 <!-- Add User Modal -->
 <div id="addUserModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-gray-800">Add New PPPoE User</h3>
             <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-600">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-
         <form id="addUserForm" class="space-y-6">
             <!-- Basic Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -41,7 +37,6 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Username *</label>
                     <input type="text" name="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="user123">
                 </div>
-                
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
                     <input type="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="••••••••">
@@ -55,50 +50,271 @@
                 <p class="text-xs text-gray-500 mt-1">Leave empty for dynamic IP assignment</p>
             </div>
 
-            <!-- Bandwidth Limits -->
+            <!-- Bandwidth Control - ENHANCED -->
             <div class="border-t pt-4">
-                <h4 class="text-md font-semibold text-gray-800 mb-4">Bandwidth & Limits</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Rate Limit</label>
-                        <input type="text" name="rate_limit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10M/5M">
-                        <p class="text-xs text-gray-500 mt-1">Format: Download/Upload (e.g., 10M/5M)</p>
+                <h4 class="text-md font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+                    Bandwidth Control (Flexible like Simple Queue)
+                </h4>
+                
+                <!-- Configuration Mode Toggle -->
+                <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Configuration Mode:</label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="config_mode" value="simple" checked onchange="toggleConfigMode('simple')" class="form-radio text-blue-600">
+                            <span class="text-sm">Simple (Auto Burst)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="config_mode" value="advanced" onchange="toggleConfigMode('advanced')" class="form-radio text-blue-600">
+                            <span class="text-sm">Advanced (Manual Control)</span>
+                        </label>
                     </div>
-                    
+                </div>
+
+                <!-- SIMPLE MODE -->
+                <div id="simpleConfig" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Max Limit (Download)
+                                <i class="fas fa-info-circle text-gray-400 cursor-help" title="Maximum download speed"></i>
+                            </label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="simpleDownload" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="updateRateLimitPreview()">
+                                <select id="simpleDownloadUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Max Limit (Upload)
+                                <i class="fas fa-info-circle text-gray-400 cursor-help" title="Maximum upload speed"></i>
+                            </label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="simpleUpload" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="updateRateLimitPreview()">
+                                <select id="simpleUploadUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Queue Priority
+                                <i class="fas fa-info-circle text-gray-400 cursor-help" title="1=Highest, 8=Lowest"></i>
+                            </label>
+                            <select id="simplePriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <option value="1">1 - Highest</option>
+                                <option value="2">2 - Very High</option>
+                                <option value="3">3 - High</option>
+                                <option value="4">4 - Above Normal</option>
+                                <option value="5" selected>5 - Normal</option>
+                                <option value="6">6 - Below Normal</option>
+                                <option value="7">7 - Low</option>
+                                <option value="8">8 - Lowest</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Auto Burst Toggle -->
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="simpleEnableBurst" checked class="form-checkbox h-5 w-5 text-green-600 rounded" onchange="updateRateLimitPreview()">
+                            <div>
+                                <span class="text-sm font-medium text-gray-700">Enable Auto Burst (Recommended)</span>
+                                <p class="text-xs text-gray-600 mt-1">Burst: 2x speed | Threshold: 50% | Time: 8s</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Limit At (Guaranteed) -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <label class="flex items-center space-x-3 cursor-pointer mb-3">
+                            <input type="checkbox" id="simpleEnableLimitAt" class="form-checkbox h-5 w-5 text-blue-600 rounded" onchange="toggleSimpleLimitAt()">
+                            <span class="text-sm font-medium text-gray-700">Set Guaranteed Bandwidth (Limit At)</span>
+                        </label>
+                        <div id="simpleLimitAtFields" class="hidden grid grid-cols-2 gap-4 mt-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Guaranteed Download</label>
+                                <div class="flex space-x-2">
+                                    <input type="number" id="simpleLimitAtDown" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
+                                    <select id="simpleLimitAtDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
+                                        <option value="k">Kbps</option>
+                                        <option value="M" selected>Mbps</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Guaranteed Upload</label>
+                                <div class="flex space-x-2">
+                                    <input type="number" id="simpleLimitAtUp" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
+                                    <select id="simpleLimitAtUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
+                                        <option value="k">Kbps</option>
+                                        <option value="M" selected>Mbps</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADVANCED MODE -->
+                <div id="advancedConfig" class="hidden space-y-6">
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                        <p class="text-xs text-orange-800">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            Advanced mode: Full manual control of all bandwidth parameters
+                        </p>
+                    </div>
+
+                    <!-- Max Limit -->
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Download</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="advMaxDown" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <select id="advMaxDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Upload</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="advMaxUp" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <select id="advMaxUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Burst Rate -->
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Download</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="advBurstDown" value="20" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <select id="advBurstDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Upload</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="advBurstUp" value="20" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <select id="advBurstUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Burst Threshold -->
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Threshold Download</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="advThreshDown" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <select id="advThreshDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Threshold Upload</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="advThreshUp" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <select id="advThreshUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Burst Time & Priority -->
+                    <div class="grid grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Time (seconds)</label>
+                            <input type="number" id="advBurstTime" value="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                            <select id="advPriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <option value="1">1 - Highest</option>
+                                <option value="2">2 - Very High</option>
+                                <option value="3">3 - High</option>
+                                <option value="4">4 - Above Normal</option>
+                                <option value="5" selected>5 - Normal</option>
+                                <option value="6">6 - Below Normal</option>
+                                <option value="7">7 - Low</option>
+                                <option value="8">8 - Lowest</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <input type="checkbox" id="advEnableLimitAt" class="mr-2" onchange="toggleAdvLimitAt()">
+                                Limit At
+                            </label>
+                            <div id="advLimitAtField" class="hidden">
+                                <div class="flex space-x-2">
+                                    <input type="number" id="advLimitAtDown" value="5" placeholder="Down" class="flex-1 px-2 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">                                    <input type="number" id="advLimitAtUp" value="5" placeholder="Up" class="flex-1 px-2 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REAL-TIME PREVIEW -->
+                <div class="bg-gray-900 rounded-lg p-4 mt-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-sm font-medium text-gray-300">
+                            <i class="fas fa-code mr-2"></i>
+                            Mikrotik-Rate-Limit Preview:
+                        </label>
+                        <button type="button" onclick="copyRateLimit()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded">
+                            <i class="fas fa-copy mr-1"></i>Copy
+                        </button>
+                    </div>
+                    <input type="text" id="rateLimitPreview" name="rate_limit" readonly class="w-full bg-gray-800 text-green-400 font-mono text-sm px-3 py-2 rounded border border-gray-700" value="10M/10M 20M/20M 5M/5M 8/8 5">
+                </div>
+            </div>
+
+            <!-- Additional Settings -->
+            <div class="border-t pt-4">
+                <h4 class="text-md font-semibold text-gray-800 mb-4">Additional Settings</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Data Limit</label>
-                        <input type="text" name="data_limit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10GB">
-                        <p class="text-xs text-gray-500 mt-1">Monthly data limit (e.g., 10GB, 500MB)</p>
+                        <input type="text" name="data_limit" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="10GB">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Session Timeout (s)</label>
+                        <input type="number" name="session_timeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="3600">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Idle Timeout (s)</label>
+                        <input type="number" name="idle_timeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="300">
                     </div>
                 </div>
-            </div>
-
-            <!-- Session Limits -->
-            <div class="border-t pt-4">
-                <h4 class="text-md font-semibold text-gray-800 mb-4">Session Limits</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Session Timeout (seconds)</label>
-                        <input type="number" name="session_timeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="3600">
-                        <p class="text-xs text-gray-500 mt-1">Maximum session duration</p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Idle Timeout (seconds)</label>
-                        <input type="number" name="idle_timeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="300">
-                        <p class="text-xs text-gray-500 mt-1">Disconnect if idle for this time</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Default PPPoE Attributes (Info) -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 class="text-sm font-semibold text-blue-800 mb-2">Default PPPoE Attributes</h4>
-                <ul class="text-xs text-blue-700 space-y-1">
-                    <li>• Framed-Protocol: PPP</li>
-                    <li>• Service-Type: Framed-User</li>
-                    <li>• Framed-Compression: Van-Jacobson-TCP-IP</li>
-                </ul>
             </div>
 
             <div class="flex space-x-3 pt-4 border-t">
@@ -115,245 +331,640 @@
 
 <!-- Edit User Modal -->
 <div id="editUserModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-gray-800">Edit PPPoE User</h3>
             <button onclick="closeEditUserModal()" class="text-gray-400 hover:text-gray-600">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-
         <form id="editUserForm" class="space-y-6">
+            <input type="hidden" id="editUsername" name="username">
+            
             <!-- Basic Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <input type="text" id="editUsername" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500">
+                    <input type="text" id="editUsernameDisplay" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" placeholder="user123">
                 </div>
-                
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input type="text" id="editPassword" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500" value="••••••••">
-                    <p class="text-xs text-gray-500 mt-1">Password cannot be changed here</p>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">New Password (leave empty to keep current)</label>
+                    <input type="password" name="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="••••••••">
                 </div>
             </div>
 
             <!-- IP Configuration -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
-                <input type="text" id="editIpAddress" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="192.168.1.100">
+                <input type="text" name="ip_address" id="editIpAddress" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="192.168.1.100">
                 <p class="text-xs text-gray-500 mt-1">Leave empty for dynamic IP assignment</p>
             </div>
 
-            <!-- Bandwidth Limits -->
+            <!-- Bandwidth Control -->
             <div class="border-t pt-4">
-                <h4 class="text-md font-semibold text-gray-800 mb-4">Bandwidth & Limits</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Rate Limit</label>
-                        <input type="text" id="editRateLimit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10M/5M">
-                        <p class="text-xs text-gray-500 mt-1">Format: Download/Upload (e.g., 10M/5M)</p>
+                <h4 class="text-md font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+                    Bandwidth Control
+                </h4>
+                
+                <!-- Configuration Mode Toggle -->
+                <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Configuration Mode:</label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="config_mode" value="simple" checked onchange="toggleEditConfigMode('simple')" class="form-radio text-blue-600">
+                            <span class="text-sm">Simple (Auto Burst)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="config_mode" value="advanced" onchange="toggleEditConfigMode('advanced')" class="form-radio text-blue-600">
+                            <span class="text-sm">Advanced (Manual Control)</span>
+                        </label>
                     </div>
-                    
+                </div>
+
+                <!-- SIMPLE MODE -->
+                <div id="editSimpleConfig" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Max Limit (Download)
+                            </label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="editSimpleDownload" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="updateEditRateLimitPreview()">
+                                <select id="editSimpleDownloadUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateEditRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Max Limit (Upload)
+                            </label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="editSimpleUpload" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="updateEditRateLimitPreview()">
+                                <select id="editSimpleUploadUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateEditRateLimitPreview()">
+                                    <option value="k">Kbps</option>
+                                    <option value="M" selected>Mbps</option>
+                                    <option value="G">Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Queue Priority
+                            </label>
+                            <select id="editSimplePriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="updateEditRateLimitPreview()">
+                                <option value="1">1 - Highest</option>
+                                <option value="2">2 - Very High</option>
+                                <option value="3">3 - High</option>
+                                <option value="4">4 - Above Normal</option>
+                                <option value="5" selected>5 - Normal</option>
+                                <option value="6">6 - Below Normal</option>
+                                <option value="7">7 - Low</option>
+                                <option value="8">8 - Lowest</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Auto Burst Toggle -->
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="editSimpleEnableBurst" checked class="form-checkbox h-5 w-5 text-green-600 rounded" onchange="updateEditRateLimitPreview()">
+                            <div>
+                                <span class="text-sm font-medium text-gray-700">Enable Auto Burst (Recommended)</span>
+                                <p class="text-xs text-gray-600 mt-1">Burst: 2x speed | Threshold: 50% | Time: 8s</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Limit At (Guaranteed) -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <label class="flex items-center space-x-3 cursor-pointer mb-3">
+                            <input type="checkbox" id="editSimpleEnableLimitAt" class="form-checkbox h-5 w-5 text-blue-600 rounded" onchange="toggleEditSimpleLimitAt()">
+                            <span class="text-sm font-medium text-gray-700">Set Guaranteed Bandwidth (Limit At)</span>
+                        </label>
+                        <div id="editSimpleLimitAtFields" class="hidden grid grid-cols-2 gap-4 mt-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Guaranteed Download</label>
+                                <div class="flex space-x-2">
+                                    <input type="number" id="editSimpleLimitAtDown" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateEditRateLimitPreview()">
+                                    <select id="editSimpleLimitAtDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateEditRateLimitPreview()">
+                                        <option value="k">Kbps</option>
+                                        <option value="M" selected>Mbps</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Guaranteed Upload</label>
+                                <div class="flex space-x-2">
+                                    <input type="number" id="editSimpleLimitAtUp" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateEditRateLimitPreview()">
+                                    <select id="editSimpleLimitAtUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateEditRateLimitPreview()">
+                                        <option value="k">Kbps</option>
+                                        <option value="M" selected>Mbps</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADVANCED MODE -->
+                <div id="editAdvancedConfig" class="hidden space-y-6">
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                        <p class="text-xs text-orange-800">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            Advanced mode: Full manual control of all bandwidth parameters
+                        </p>
+                    </div>
+
+                    <!-- Custom Rate Limit Input -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Custom Rate Limit String</label>
+                        <input type="text" id="editCustomRateLimit" class="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm" 
+                               placeholder="10M/10M 20M/20M 5M/5M 8/8 5" onchange="updateEditRateLimitPreview()">
+                        <p class="text-xs text-gray-500 mt-1">Enter Mikrotik rate-limit string directly</p>
+                    </div>
+                </div>
+
+                <!-- REAL-TIME PREVIEW -->
+                <div class="bg-gray-900 rounded-lg p-4 mt-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-sm font-medium text-gray-300">
+                            <i class="fas fa-code mr-2"></i>
+                            Mikrotik-Rate-Limit Preview:
+                        </label>
+                        <button type="button" onclick="copyEditRateLimit()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded">
+                            <i class="fas fa-copy mr-1"></i>Copy
+                        </button>
+                    </div>
+                    <input type="text" id="editRateLimitPreview" name="rate_limit" readonly class="w-full bg-gray-800 text-green-400 font-mono text-sm px-3 py-2 rounded border border-gray-700" value="10M/10M 20M/20M 5M/5M 8/8 5">
+                </div>
+            </div>
+
+            <!-- Additional Settings -->
+            <div class="border-t pt-4">
+                <h4 class="text-md font-semibold text-gray-800 mb-4">Additional Settings</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Data Limit</label>
-                        <input type="text" id="editDataLimit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10GB">
-                        <p class="text-xs text-gray-500 mt-1">Monthly data limit (e.g., 10GB, 500MB)</p>
+                        <input type="text" name="data_limit" id="editDataLimit" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="10GB">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Session Timeout (s)</label>
+                        <input type="number" name="session_timeout" id="editSessionTimeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="3600">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Idle Timeout (s)</label>
+                        <input type="number" name="idle_timeout" id="editIdleTimeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="300">
                     </div>
                 </div>
-            </div>
-
-            <!-- Session Limits -->
-            <div class="border-t pt-4">
-                <h4 class="text-md font-semibold text-gray-800 mb-4">Session Limits</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Session Timeout (seconds)</label>
-                        <input type="number" id="editSessionTimeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="3600">
-                        <p class="text-xs text-gray-500 mt-1">Maximum session duration</p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Idle Timeout (seconds)</label>
-                        <input type="number" id="editIdleTimeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="300">
-                        <p class="text-xs text-gray-500 mt-1">Disconnect if idle for this time</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Default PPPoE Attributes (Info) -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 class="text-sm font-semibold text-blue-800 mb-2">Default PPPoE Attributes</h4>
-                <ul class="text-xs text-blue-700 space-y-1">
-                    <li>• Framed-Protocol: PPP</li>
-                    <li>• Service-Type: Framed-User</li>
-                    <li>• Framed-Compression: Van-Jacobson-TCP-IP</li>
-                </ul>
             </div>
 
             <div class="flex space-x-3 pt-4 border-t">
                 <button type="button" onclick="closeEditUserModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                     Cancel
                 </button>
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2">
-                    <i class="fas fa-save"></i>
-                    <span>Update User</span>
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    Update User
                 </button>
             </div>
         </form>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Configuration Mode Toggle for Add
+    function toggleConfigMode(mode) {
+        const simple = document.getElementById('simpleConfig');
+        const advanced = document.getElementById('advancedConfig');
+        
+        if (mode === 'simple') {
+            simple.classList.remove('hidden');
+            advanced.classList.add('hidden');
+        } else {
+            simple.classList.add('hidden');
+            advanced.classList.remove('hidden');
+        }
+        updateRateLimitPreview();
+    }
+
+    // Toggle Simple Limit At for Add
+    function toggleSimpleLimitAt() {
+        const checkbox = document.getElementById('simpleEnableLimitAt');
+        const fields = document.getElementById('simpleLimitAtFields');
+        fields.classList.toggle('hidden', !checkbox.checked);
+        updateRateLimitPreview();
+    }
+
+    // Toggle Advanced Limit At for Add
+    function toggleAdvLimitAt() {
+        const checkbox = document.getElementById('advEnableLimitAt');
+        const field = document.getElementById('advLimitAtField');
+        field.classList.toggle('hidden', !checkbox.checked);
+        updateRateLimitPreview();
+    }
+
+    // Update Rate Limit Preview for Add
+    function updateRateLimitPreview() {
+        const mode = document.querySelector('#addUserForm input[name="config_mode"]:checked').value;
+        let rateLimit = '';
+
+        if (mode === 'simple') {
+            const down = document.getElementById('simpleDownload').value + document.getElementById('simpleDownloadUnit').value;
+            const up = document.getElementById('simpleUpload').value + document.getElementById('simpleUploadUnit').value;
+            const priority = document.getElementById('simplePriority').value;
+            const enableBurst = document.getElementById('simpleEnableBurst').checked;
+            const enableLimitAt = document.getElementById('simpleEnableLimitAt').checked;
+
+            // Max Limit
+            rateLimit = `${down}/${up}`;
+
+            // Burst (auto 2x if enabled)
+            if (enableBurst) {
+                const burstDown = (parseFloat(document.getElementById('simpleDownload').value) * 2) + document.getElementById('simpleDownloadUnit').value;
+                const burstUp = (parseFloat(document.getElementById('simpleUpload').value) * 2) + document.getElementById('simpleUploadUnit').value;
+                rateLimit += ` ${burstDown}/${burstUp}`;
+
+                // Threshold (auto 50%)
+                const threshDown = (parseFloat(document.getElementById('simpleDownload').value) * 0.5) + document.getElementById('simpleDownloadUnit').value;
+                const threshUp = (parseFloat(document.getElementById('simpleUpload').value) * 0.5) + document.getElementById('simpleUploadUnit').value;
+                rateLimit += ` ${threshDown}/${threshUp}`;
+
+                // Burst Time (default 8s)
+                rateLimit += ` 8/8`;
+            } else {
+                rateLimit += ` 0/0 0/0 0/0`;
+            }
+
+            // Priority
+            rateLimit += ` ${priority}`;
+
+            // Limit At (guaranteed bandwidth)
+            if (enableLimitAt) {
+                const limitDown = document.getElementById('simpleLimitAtDown').value + document.getElementById('simpleLimitAtDownUnit').value;
+                const limitUp = document.getElementById('simpleLimitAtUp').value + document.getElementById('simpleLimitAtUpUnit').value;
+                rateLimit += ` ${limitDown}/${limitUp}`;
+            }
+
+        } else {
+            // Advanced Mode
+            const maxDown = document.getElementById('advMaxDown').value + document.getElementById('advMaxDownUnit').value;
+            const maxUp = document.getElementById('advMaxUp').value + document.getElementById('advMaxUpUnit').value;
+            const burstDown = document.getElementById('advBurstDown').value + document.getElementById('advBurstDownUnit').value;
+            const burstUp = document.getElementById('advBurstUp').value + document.getElementById('advBurstUpUnit').value;
+            const threshDown = document.getElementById('advThreshDown').value + document.getElementById('advThreshDownUnit').value;
+            const threshUp = document.getElementById('advThreshUp').value + document.getElementById('advThreshUpUnit').value;
+            const burstTime = document.getElementById('advBurstTime').value;
+            const priority = document.getElementById('advPriority').value;
+            const enableLimitAt = document.getElementById('advEnableLimitAt').checked;
+
+            rateLimit = `${maxDown}/${maxUp} ${burstDown}/${burstUp} ${threshDown}/${threshUp} ${burstTime}/${burstTime} ${priority}`;
+
+            if (enableLimitAt) {
+                const limitDown = document.getElementById('advLimitAtDown').value + 'M';
+                const limitUp = document.getElementById('advLimitAtUp').value + 'M';
+                rateLimit += ` ${limitDown}/${limitUp}`;
+            }
+        }
+
+        document.getElementById('rateLimitPreview').value = rateLimit;
+    }
+
+    // Copy Rate Limit for Add
+    async function copyRateLimit() {
+        const input = document.getElementById('rateLimitPreview');
+        try {
+            await navigator.clipboard.writeText(input.value);
+            showNotification('Rate limit copied to clipboard!', 'success');
+        } catch (err) {
+            showNotification('Failed to copy rate limit', 'error');
+        }
+    }
+
+    // Modal functions for Add
+    function openAddUserModal() {
+        document.getElementById('addUserModal').classList.remove('hidden');
+        updateRateLimitPreview();
+    }
+
+    function closeAddUserModal() {
+        document.getElementById('addUserModal').classList.add('hidden');
+        document.getElementById('addUserForm').reset();
+        updateRateLimitPreview();
+    }
+
+    // Configuration Mode Toggle for Edit
+    function toggleEditConfigMode(mode) {
+        const simple = document.getElementById('editSimpleConfig');
+        const advanced = document.getElementById('editAdvancedConfig');
+        
+        if (mode === 'simple') {
+            simple.classList.remove('hidden');
+            advanced.classList.add('hidden');
+        } else {
+            simple.classList.add('hidden');
+            advanced.classList.remove('hidden');
+        }
+        updateEditRateLimitPreview();
+    }
+
+    // Toggle Simple Limit At for Edit
+    function toggleEditSimpleLimitAt() {
+        const checkbox = document.getElementById('editSimpleEnableLimitAt');
+        const fields = document.getElementById('editSimpleLimitAtFields');
+        fields.classList.toggle('hidden', !checkbox.checked);
+        updateEditRateLimitPreview();
+    }
+
+    // Update Rate Limit Preview for Edit
+    function updateEditRateLimitPreview() {
+        const mode = document.querySelector('#editUserForm input[name="config_mode"]:checked').value;
+        let rateLimit = '';
+
+        if (mode === 'simple') {
+            const down = document.getElementById('editSimpleDownload').value + document.getElementById('editSimpleDownloadUnit').value;
+            const up = document.getElementById('editSimpleUpload').value + document.getElementById('editSimpleUploadUnit').value;
+            const priority = document.getElementById('editSimplePriority').value;
+            const enableBurst = document.getElementById('editSimpleEnableBurst').checked;
+            const enableLimitAt = document.getElementById('editSimpleEnableLimitAt').checked;
+
+            // Max Limit
+            rateLimit = `${down}/${up}`;
+
+            // Burst (auto 2x if enabled)
+            if (enableBurst) {
+                const burstDown = (parseFloat(document.getElementById('editSimpleDownload').value) * 2) + document.getElementById('editSimpleDownloadUnit').value;
+                const burstUp = (parseFloat(document.getElementById('editSimpleUpload').value) * 2) + document.getElementById('editSimpleUploadUnit').value;
+                rateLimit += ` ${burstDown}/${burstUp}`;
+
+                // Threshold (auto 50%)
+                const threshDown = (parseFloat(document.getElementById('editSimpleDownload').value) * 0.5) + document.getElementById('editSimpleDownloadUnit').value;
+                const threshUp = (parseFloat(document.getElementById('editSimpleUpload').value) * 0.5) + document.getElementById('editSimpleUploadUnit').value;
+                rateLimit += ` ${threshDown}/${threshUp}`;
+
+                // Burst Time (default 8s)
+                rateLimit += ` 8/8`;
+            } else {
+                rateLimit += ` 0/0 0/0 0/0`;
+            }
+
+            // Priority
+            rateLimit += ` ${priority}`;
+
+            // Limit At (guaranteed bandwidth)
+            if (enableLimitAt) {
+                const limitDown = document.getElementById('editSimpleLimitAtDown').value + document.getElementById('editSimpleLimitAtDownUnit').value;
+                const limitUp = document.getElementById('editSimpleLimitAtUp').value + document.getElementById('editSimpleLimitAtUpUnit').value;
+                rateLimit += ` ${limitDown}/${limitUp}`;
+            }
+        } else {
+            // Advanced Mode - use custom input
+            rateLimit = document.getElementById('editCustomRateLimit').value;
+        }
+
+        document.getElementById('editRateLimitPreview').value = rateLimit;
+    }
+
+    // Copy Rate Limit for Edit
+    async function copyEditRateLimit() {
+        const input = document.getElementById('editRateLimitPreview');
+        try {
+            await navigator.clipboard.writeText(input.value);
+            showNotification('Rate limit copied to clipboard!', 'success');
+        } catch (err) {
+            showNotification('Failed to copy rate limit', 'error');
+        }
+    }
+
+    // Modal functions for Edit
+    function closeEditUserModal() {
+        document.getElementById('editUserModal').classList.add('hidden');
+    }
+
     // Load users list
     async function loadUsers() {
         console.log('Loading users...');
+        const usersList = document.getElementById('usersList');
+        
         try {
-            const data = await apiCall('/api/users');
-            console.log('Users API response:', data);
+            const response = await fetch('/api/users');
+            const users = await response.json();
             
-            const usersList = document.getElementById('usersList');
-            
-            if (data.error) {
-                usersList.innerHTML = `
-                    <div class="text-center py-8 text-red-600">
-                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                        <p class="font-medium">Error loading users</p>
-                        <p class="text-sm mt-1">${data.error}</p>
-                        <button onclick="loadUsers()" class="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
-                            Retry
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-
-            if (!data || data.length === 0) {
+            if (users.length === 0) {
                 usersList.innerHTML = `
                     <div class="text-center py-8 text-gray-500">
                         <i class="fas fa-users text-2xl mb-2"></i>
-                        <p class="font-medium">No users configured</p>
-                        <p class="text-sm mt-1">Click "Add User" to create your first PPPoE account</p>
+                        <p class="font-medium">No users found</p>
+                        <p class="text-sm mt-1">Add your first user to get started</p>
                     </div>
                 `;
-                return;
+            } else {
+                let html = '';
+                users.forEach(user => {
+                    const statusBadge = user.active_sessions > 0 
+                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>'
+                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Inactive</span>';
+                    
+                    html += `
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <h4 class="font-semibold text-gray-800">${user.username}</h4>
+                                        ${statusBadge}
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-network-wired mr-1 text-gray-400"></i>
+                                            IP: ${user.ip_address || 'Dynamic'}
+                                        </p>
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-tachometer-alt mr-1 text-gray-400"></i>
+                                            Rate: ${user.rate_limit || 'Not set'}
+                                        </p>
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-clock mr-1 text-gray-400"></i>
+                                            Session: ${user.session_timeout || 'Unlimited'}s
+                                        </p>
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-hourglass-half mr-1 text-gray-400"></i>
+                                            Idle: ${user.idle_timeout || 'Unlimited'}s
+                                        </p>
+                                        ${user.data_limit ? `<p class="text-gray-600"><i class="fas fa-database mr-1 text-gray-400"></i> Data: ${user.data_limit}</p>` : ''}
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2 ml-4">
+                                    <button onclick="editUser('${user.username}')" class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors" title="Edit User">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="deleteUser(${user.id}, '${user.username}')" class="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors" title="Delete User">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                usersList.innerHTML = html;
             }
-
-            usersList.innerHTML = data.map(user => `
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-green-300 transition-colors">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="flex items-center space-x-3 mb-3">
-                                <i class="fas fa-user text-green-600"></i>
-                                <h4 class="font-semibold text-gray-800">${user.username}</h4>
-                                ${user.active_sessions > 0 ? `
-                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded flex items-center space-x-1">
-                                        <i class="fas fa-plug text-xs"></i>
-                                        <span>${user.active_sessions} active</span>
-                                    </span>
-                                ` : ''}
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
-                                <div>
-                                    <span class="font-medium">Password:</span>
-                                    <div class="text-gray-800 font-mono">••••••••</div>
-                                </div>
-                                
-                                <div>
-                                    <span class="font-medium">IP Address:</span>
-                                    <div class="text-gray-800">${user.ip_address || '<span class="text-gray-400">Dynamic</span>'}</div>
-                                </div>
-                                
-                                ${user.rate_limit ? `
-                                    <div>
-                                        <span class="font-medium">Rate Limit:</span>
-                                        <div class="text-gray-800">${user.rate_limit}</div>
-                                    </div>
-                                ` : ''}
-                                
-                                ${user.session_timeout ? `
-                                    <div>
-                                        <span class="font-medium">Session Timeout:</span>
-                                        <div class="text-gray-800">${user.session_timeout}s</div>
-                                    </div>
-                                ` : ''}
-                            </div>
-                            
-                            <!-- Additional attributes -->
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                ${user.idle_timeout ? `
-                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                                        Idle: ${user.idle_timeout}s
-                                    </span>
-                                ` : ''}
-                                
-                                ${user.data_limit ? `
-                                    <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                                        Data: ${user.data_limit}
-                                    </span>
-                                ` : ''}
-                            </div>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button onclick="editUser('${user.username}', '${user.ip_address || ''}', '${user.rate_limit || ''}', '${user.session_timeout || ''}', '${user.idle_timeout || ''}', '${user.data_limit || ''}')" 
-                                    class="text-blue-600 hover:text-blue-800 p-2 transition-colors" title="Edit User">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button onclick="deleteUser(${user.id})" class="text-red-600 hover:text-red-800 p-2 transition-colors" title="Delete User">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
         } catch (error) {
             console.error('Error loading users:', error);
-            const usersList = document.getElementById('usersList');
             usersList.innerHTML = `
-                <div class="text-center py-8 text-red-600">
+                <div class="text-center py-8 text-red-500">
                     <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                    <p class="font-medium">Network error</p>
+                    <p class="font-medium">Error loading users</p>
                     <p class="text-sm mt-1">${error.message}</p>
-                    <button onclick="loadUsers()" class="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
-                        Retry
-                    </button>
                 </div>
             `;
         }
     }
 
-    // Modal functions
-    function openAddUserModal() {
-        document.getElementById('addUserModal').classList.remove('hidden');
-    }
-
-    function closeAddUserModal() {
-        document.getElementById('addUserModal').classList.add('hidden');
-    }
-
-    // Edit User functions
-    function editUser(username, ipAddress, rateLimit, sessionTimeout, idleTimeout, dataLimit) {
-        document.getElementById('editUsername').value = username;
-        document.getElementById('editIpAddress').value = ipAddress || '';
-        document.getElementById('editRateLimit').value = rateLimit || '';
-        document.getElementById('editSessionTimeout').value = sessionTimeout || '';
-        document.getElementById('editIdleTimeout').value = idleTimeout || '';
-        document.getElementById('editDataLimit').value = dataLimit || '';
+    // Delete user function
+    async function deleteUser(userId, username) {
+        if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+            return;
+        }
         
-        document.getElementById('editUserModal').classList.remove('hidden');
+        try {
+            const response = await fetch(`/api/users/delete/${userId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification('User deleted successfully!', 'success');
+                loadUsers(); // Reload list
+            } else {
+                showNotification('Error: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showNotification('Error: ' + error.message, 'error');
+        }
     }
 
-    function closeEditUserModal() {
-        document.getElementById('editUserModal').classList.add('hidden');
+    // Edit user function
+    async function editUser(username) {
+        try {
+            // Fetch user data
+            const response = await fetch(`/api/users`);
+            const users = await response.json();
+            const user = users.find(u => u.username === username);
+            
+            if (!user) {
+                showNotification('User not found!', 'error');
+                return;
+            }
+            
+            // Populate form with user data
+            document.getElementById('editUsername').value = user.username;
+            document.getElementById('editUsernameDisplay').value = user.username;
+            document.getElementById('editIpAddress').value = user.ip_address || '';
+            document.getElementById('editDataLimit').value = user.data_limit || '';
+            document.getElementById('editSessionTimeout').value = user.session_timeout || '';
+            document.getElementById('editIdleTimeout').value = user.idle_timeout || '';
+            
+            // Parse and set rate limit
+            if (user.rate_limit) {
+                document.getElementById('editCustomRateLimit').value = user.rate_limit;
+                document.getElementById('editRateLimitPreview').value = user.rate_limit;
+                
+                // Try to parse simple mode values
+                const parts = user.rate_limit.split(' ');
+                if (parts.length >= 1) {
+                    const maxRate = parts[0].split('/');
+                    if (maxRate.length === 2) {
+                        const downMatch = maxRate[0].match(/(\d+)([kMG])/);
+                        const upMatch = maxRate[1].match(/(\d+)([kMG])/);
+                        
+                        if (downMatch && upMatch) {
+                            document.getElementById('editSimpleDownload').value = downMatch[1];
+                            document.getElementById('editSimpleDownloadUnit').value = downMatch[2];
+                            document.getElementById('editSimpleUpload').value = upMatch[1];
+                            document.getElementById('editSimpleUploadUnit').value = upMatch[2];
+                        }
+                    }
+                    
+                    // Extract priority if available
+                    if (parts.length >= 5) {
+                        const priorityMatch = parts[4].match(/(\d+)/);
+                        if (priorityMatch) {
+                            document.getElementById('editSimplePriority').value = priorityMatch[1];
+                        }
+                    }
+                }
+            }
+            
+            // Show modal
+            document.getElementById('editUserModal').classList.remove('hidden');
+            updateEditRateLimitPreview();
+            
+        } catch (error) {
+            console.error('Error loading user data:', error);
+            showNotification('Error loading user data', 'error');
+        }
     }
 
-    // Add User form
+    // Notification helper
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2 transform transition-all duration-300 translate-x-full`;
+        
+        // Set color based on type
+        const colors = {
+            success: 'bg-green-500 text-white',
+            error: 'bg-red-500 text-white',
+            info: 'bg-blue-500 text-white',
+            warning: 'bg-yellow-500 text-white'
+        };
+        
+        notification.classList.add(...colors[type].split(' '));
+        
+        // Add icon
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            info: 'fa-info-circle',
+            warning: 'fa-exclamation-triangle'
+        };
+        
+        notification.innerHTML = `
+            <i class="fas ${icons[type]}"></i>
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Animate in
+        setTimeout(() => {
+            notification.classList.remove('translate-x-full');
+            notification.classList.add('translate-x-0');
+        }, 100);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.classList.add('translate-x-full');
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        loadUsers();
+        updateRateLimitPreview();
+    });
+
+    // Add form submission
     document.getElementById('addUserForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
         const submitBtn = this.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
@@ -362,99 +973,83 @@
         try {
             const formData = new FormData(this);
             const data = Object.fromEntries(formData);
+            console.log('User data:', data);
             
-            console.log('Adding user:', data);
-
-            const result = await apiCall('/api/users/add', {
+            // Real API call to add user
+            const response = await fetch('/api/users/add', {
                 method: 'POST',
-                body: JSON.stringify(data)
+                body: formData
             });
-
-            console.log('Add user result:', result);
-
+            
+            const result = await response.json();
+            
             if (result.success) {
-                showNotification(result.message, 'success');
+                showNotification('User added successfully!', 'success');
                 closeAddUserModal();
                 this.reset();
+                updateRateLimitPreview();
+                
+                // Reload users list
                 loadUsers();
             } else {
-                showNotification('Failed to add user: ' + result.error, 'error');
+                showNotification('Error: ' + result.error, 'error');
             }
+            
         } catch (error) {
-            showNotification('Network error: ' + error.message, 'error');
+            console.error('Error adding user:', error);
+            showNotification('Error: ' + error.message, 'error');
         } finally {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         }
     });
 
-    // Edit User form
+    // Edit form submission
     document.getElementById('editUserForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
         const submitBtn = this.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
         submitBtn.disabled = true;
 
         try {
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
             const username = document.getElementById('editUsername').value;
-            const formData = {
-                ip_address: document.getElementById('editIpAddress').value,
-                rate_limit: document.getElementById('editRateLimit').value,
-                session_timeout: document.getElementById('editSessionTimeout').value,
-                idle_timeout: document.getElementById('editIdleTimeout').value,
-                data_limit: document.getElementById('editDataLimit').value
-            };
             
-            console.log('Updating user:', username, formData);
-
-            const result = await apiCall('/api/users/update/' + username, {
+            // Remove password if empty
+            if (!data.password) {
+                delete data.password;
+            }
+            
+            // Real API call to update user
+            const response = await fetch(`/api/users/update/${username}`, {
                 method: 'PUT',
-                body: JSON.stringify(formData)
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
-
-            console.log('Update user result:', result);
-
+            
+            const result = await response.json();
+            
             if (result.success) {
-                showNotification(result.message, 'success');
+                showNotification('User updated successfully!', 'success');
                 closeEditUserModal();
+                
+                // Reload users list
                 loadUsers();
             } else {
-                showNotification('Failed to update user: ' + result.error, 'error');
+                showNotification('Error: ' + result.error, 'error');
             }
+            
         } catch (error) {
-            showNotification('Network error: ' + error.message, 'error');
+            console.error('Error updating user:', error);
+            showNotification('Error: ' + error.message, 'error');
         } finally {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         }
-    });
-
-    // Delete User
-    async function deleteUser(userId) {
-        if (!confirm('Are you sure you want to delete this user?')) return;
-
-        try {
-            const result = await apiCall('/api/users/delete/' + userId, {
-                method: 'DELETE'
-            });
-
-            if (result.success) {
-                showNotification(result.message, 'success');
-                loadUsers();
-            } else {
-                showNotification('Failed to delete user: ' + result.error, 'error');
-            }
-        } catch (error) {
-            showNotification('Network error: ' + error.message, 'error');
-        }
-    }
-
-    // Load users on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, loading users...');
-        loadUsers();
     });
 </script>
 {% endblock %}
