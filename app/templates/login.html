@@ -12,7 +12,7 @@
         * { font-family: 'Inter', sans-serif; }
         
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: linear-gradient(135deg, #1e293b 0%, #111827 50%, #1f2937 100%);
             background-size: 200% 200%;
             animation: gradientShift 15s ease infinite;
         }
@@ -38,10 +38,10 @@
         .fade-in-up { animation: fadeInUp 0.8s ease-out; }
         
         .glass {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(31, 41, 55, 0.5);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(75, 85, 99, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
         
         .input-group input:focus {
@@ -63,7 +63,7 @@
             width: 0;
             height: 0;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
             transform: translate(-50%, -50%);
             transition: width 0.6s, height 0.6s;
         }
@@ -80,7 +80,7 @@
         
         .particle {
             position: absolute;
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(148, 163, 184, 0.3);
             border-radius: 50%;
             animation: rise 10s infinite ease-in;
         }
@@ -94,11 +94,11 @@
         @keyframes logoPulse {
             0%, 100% {
                 transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
             }
             50% {
                 transform: scale(1.05);
-                box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+                box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
             }
         }
         
@@ -125,11 +125,11 @@
         <!-- Logo Section -->
         <div class="text-center mb-8 float fade-in-up">
             <div class="inline-block">
-                <div class="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 logo-pulse shadow-2xl">
-                    <i class="fas fa-wifi text-6xl bg-gradient-to-br from-blue-600 to-purple-600 bg-clip-text text-transparent"></i>
+                <div class="w-24 h-24 bg-gray-800/80 rounded-3xl flex items-center justify-center mx-auto mb-4 logo-pulse shadow-2xl border border-gray-700">
+                    <i class="fas fa-wifi text-6xl bg-gradient-to-br from-blue-400 to-purple-400 bg-clip-text text-transparent"></i>
                 </div>
                 <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">RADIUS Manager</h1>
-                <p class="text-white/80 text-lg">Network Control Center</p>
+                <p class="text-gray-400 text-lg">Network Control Center</p>
             </div>
         </div>
 
@@ -140,26 +140,26 @@
                     <i class="fas fa-sign-in-alt mr-2"></i>
                     Welcome Back
                 </h2>
-                <p class="text-white/70">Sign in to access your dashboard</p>
+                <p class="text-gray-400">Sign in to access your dashboard</p>
             </div>
 
             <form method="POST" action="/login" id="loginForm" class="space-y-6">
                 
                 <!-- Username Input -->
                 <div class="input-group">
-                    <label class="block text-white/90 text-sm font-semibold mb-2">
+                    <label class="block text-gray-300 text-sm font-semibold mb-2">
                         <i class="fas fa-user mr-2"></i>
                         Username
                     </label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i class="fas fa-user text-white/50"></i>
+                            <i class="fas fa-user text-gray-500"></i>
                         </div>
                         <input 
                             type="text" 
                             name="username" 
                             required
-                            class="w-full pl-12 pr-4 py-4 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-300"
+                            class="w-full pl-12 pr-4 py-4 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-300"
                             placeholder="Enter your username"
                         >
                     </div>
@@ -167,26 +167,26 @@
 
                 <!-- Password Input -->
                 <div class="input-group">
-                    <label class="block text-white/90 text-sm font-semibold mb-2">
+                    <label class="block text-gray-300 text-sm font-semibold mb-2">
                         <i class="fas fa-lock mr-2"></i>
                         Password
                     </label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i class="fas fa-lock text-white/50"></i>
+                            <i class="fas fa-lock text-gray-500"></i>
                         </div>
                         <input 
                             type="password" 
                             name="password" 
                             id="password"
                             required
-                            class="w-full pl-12 pr-12 py-4 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-300"
+                            class="w-full pl-12 pr-12 py-4 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-300"
                             placeholder="Enter your password"
                         >
                         <button 
                             type="button"
                             onclick="togglePassword()"
-                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/50 hover:text-white transition-colors"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-300 transition-colors"
                         >
                             <i class="fas fa-eye" id="toggleIcon"></i>
                         </button>
@@ -195,11 +195,11 @@
 
                 <!-- Remember Me & Forgot Password -->
                 <div class="flex items-center justify-between text-sm">
-                    <label class="flex items-center text-white/80 cursor-pointer hover:text-white transition-colors">
+                    <label class="flex items-center text-gray-400 cursor-pointer hover:text-gray-300 transition-colors">
                         <input type="checkbox" class="mr-2 rounded">
                         <span>Remember me</span>
                     </label>
-                    <a href="#" class="text-white/80 hover:text-white font-medium transition-colors">
+                    <a href="#" class="text-gray-400 hover:text-gray-300 font-medium transition-colors">
                         Forgot password?
                     </a>
                 </div>
@@ -207,8 +207,7 @@
                 <!-- Login Button -->
                 <button 
                     type="submit"
-                    class="btn-login w-full bg-white text-purple-600 py-4 rounded-xl font-bold text-lg shadow-lg relative overflow-hidden"
-                >
+                    class="btn-login w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg relative overflow-hidden"                >
                     <span class="relative z-10 flex items-center justify-center">
                         <i class="fas fa-arrow-right mr-2"></i>
                         Sign In
@@ -231,18 +230,18 @@
             {% endwith %}
 
             <!-- Demo Credentials -->
-            <div class="mt-8 p-4 bg-white/10 rounded-xl border border-white/20">
+            <div class="mt-8 p-4 bg-gray-800/30 rounded-xl border border-gray-700">
                 <div class="flex items-start">
                     <div class="flex-shrink-0">
-                        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-info-circle text-white"></i>
+                        <div class="w-10 h-10 bg-gray-700/50 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-info-circle text-gray-400"></i>
                         </div>
                     </div>
-                    <div class="ml-3 flex-1">
-                        <h3 class="text-white font-semibold text-sm mb-2">Demo Credentials</h3>
-                        <div class="space-y-1 text-xs text-white/70">
-                            <p><strong class="text-white/90">Username:</strong> admin</p>
-                            <p><strong class="text-white/90">Password:</strong> admin123</p>
+                    <div class="ml-3">
+                        <h3 class="text-gray-300 font-semibold text-sm mb-2">Demo Credentials</h3>
+                        <div class="space-y-1 text-xs text-gray-500">
+                            <p><strong class="text-gray-400">Username:</strong> admin</p>
+                            <p><strong class="text-gray-400">Password:</strong> admin123</p>
                         </div>
                     </div>
                 </div>
@@ -251,7 +250,7 @@
             <!-- Quick Login Button -->
             <button 
                 onclick="quickLogin()"
-                class="mt-4 w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium text-sm transition-all duration-300 border border-white/20"
+                class="mt-4 w-full py-3 bg-gray-700/50 hover:bg-gray-700/70 text-gray-300 rounded-xl font-medium text-sm transition-all duration-300 border border-gray-600"
             >
                 <i class="fas fa-bolt mr-2"></i>
                 Quick Login (Demo)
@@ -259,7 +258,7 @@
         </div>
 
         <!-- Footer -->
-        <div class="text-center mt-8 text-white/70 text-sm fade-in-up" style="animation-delay: 0.4s">
+        <div class="text-center mt-8 text-gray-500 text-sm fade-in-up" style="animation-delay: 0.4s">
             <p>
                 <i class="fas fa-shield-alt mr-1"></i>
                 Secured by RADIUS Authentication
@@ -292,6 +291,5 @@
             document.querySelector('input[name="password"]').value = 'admin123';
         }
     </script>
-
 </body>
 </html>
