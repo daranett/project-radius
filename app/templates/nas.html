@@ -6,9 +6,9 @@
 
 {% block content %}
 <div class="fade-in">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-6">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-semibold text-gray-800">NAS Devices List</h3>
+            <h3 class="text-lg font-semibold text-gray-100">NAS Devices List</h3>
             <button onclick="openAddNasModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
                 <i class="fas fa-plus"></i>
                 <span>Add NAS</span>
@@ -17,37 +17,37 @@
 
         <div id="nasList" class="space-y-4">
             <div class="text-center py-8">
-                <i class="fas fa-spinner fa-spin text-blue-600 text-2xl mb-2"></i>
-                <p class="text-gray-600">Loading NAS devices...</p>
+                <i class="fas fa-spinner fa-spin text-blue-400 text-2xl mb-2"></i>
+                <p class="text-gray-400">Loading NAS devices...</p>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Add NAS Modal -->
-<div id="addNasModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+<div id="addNasModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+    <div class="bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 border border-gray-700">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">Add New NAS</h3>
-            <button onclick="closeAddNasModal()" class="text-gray-400 hover:text-gray-600">
+            <h3 class="text-lg font-semibold text-gray-100">Add New NAS</h3>
+            <button onclick="closeAddNasModal()" class="text-gray-400 hover:text-gray-200">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
         <form id="addNasForm" class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">NAS Name/IP *</label>
-                <input type="text" name="nasname" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="192.168.1.1">
+                <label class="block text-sm font-medium text-gray-300 mb-1">NAS Name/IP *</label>
+                <input type="text" name="nasname" required class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100" placeholder="192.168.1.1">
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Short Name *</label>
-                <input type="text" name="shortname" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="mikrotik-1">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Short Name *</label>
+                <input type="text" name="shortname" required class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100" placeholder="mikrotik-1">
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Type</label>
+                <select name="type" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100">
                     <option value="other">Other</option>
                     <option value="mikrotik">MikroTik</option>
                     <option value="cisco">Cisco</option>
@@ -56,22 +56,22 @@
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Ports</label>
-                <input type="number" name="ports" value="1812" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Ports</label>
+                <input type="number" name="ports" value="1812" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100">
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Secret *</label>
-                <input type="text" name="secret" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="testing123">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Secret *</label>
+                <input type="text" name="secret" required class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100" placeholder="testing123">
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <input type="text" name="description" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Main Router">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Description</label>
+                <input type="text" name="description" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100" placeholder="Main Router">
             </div>
 
             <div class="flex space-x-3 pt-4">
-                <button type="button" onclick="closeAddNasModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <button type="button" onclick="closeAddNasModal()" class="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors">
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
@@ -96,7 +96,7 @@
             
             if (data.error) {
                 nasList.innerHTML = `
-                    <div class="text-center py-8 text-red-600">
+                    <div class="text-center py-8 text-red-400">
                         <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
                         <p class="font-medium">Error loading NAS devices</p>
                         <p class="text-sm mt-1">${data.error}</p>
@@ -119,24 +119,25 @@
                 return;
             }
 
+            // This is the part that generates the HTML for each NAS item
             nasList.innerHTML = data.map(nas => `
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-blue-300 transition-colors">
+                <div class="bg-gray-700/50 rounded-lg p-4 border border-gray-600 hover:border-blue-500 transition-colors">
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
                             <div class="flex items-center space-x-3 mb-2">
-                                <i class="fas fa-server text-blue-600"></i>
-                                <h4 class="font-semibold text-gray-800">${nas.nasname}</h4>
-                                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${nas.shortname}</span>
+                                <i class="fas fa-server text-blue-400"></i>
+                                <h4 class="font-semibold text-gray-100">${nas.nasname}</h4>
+                                <span class="bg-blue-900/50 text-blue-300 text-xs px-2 py-1 rounded">${nas.shortname}</span>
                             </div>
-                            <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div class="grid grid-cols-2 gap-4 text-sm text-gray-400">
                                 <div><span class="font-medium">Type:</span> ${nas.type || 'other'}</div>
                                 <div><span class="font-medium">Ports:</span> ${nas.ports || '1812'}</div>
-                                <div><span class="font-medium">Secret:</span> <code class="bg-gray-200 px-1 rounded">${nas.secret}</code></div>
+                                <div><span class="font-medium">Secret:</span> <code class="bg-gray-900 px-1 rounded text-gray-300">${nas.secret}</code></div>
                                 <div><span class="font-medium">ID:</span> ${nas.id}</div>
                             </div>
-                            ${nas.description ? `<p class="text-sm text-gray-600 mt-2"><span class="font-medium">Description:</span> ${nas.description}</p>` : ''}
+                            ${nas.description ? `<p class="text-sm text-gray-400 mt-2"><span class="font-medium">Description:</span> ${nas.description}</p>` : ''}
                         </div>
-                        <button onclick="deleteNAS(${nas.id})" class="text-red-600 hover:text-red-800 p-2 transition-colors" title="Delete NAS">
+                        <button onclick="deleteNAS(${nas.id})" class="text-red-400 hover:text-red-300 p-2 transition-colors" title="Delete NAS">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -146,7 +147,7 @@
             console.error('Error loading NAS:', error);
             const nasList = document.getElementById('nasList');
             nasList.innerHTML = `
-                <div class="text-center py-8 text-red-600">
+                <div class="text-center py-8 text-red-400">
                     <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
                     <p class="font-medium">Network error</p>
                     <p class="text-sm mt-1">${error.message}</p>
