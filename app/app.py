@@ -13,6 +13,7 @@ from flask import send_file
 import re
 import psutil
 import threading
+import io
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'radius-dashboard-secret-2024'
@@ -701,6 +702,248 @@ def api_system_metrics():
 @app.route('/health')
 def health():
     return 'OK'
+
+# === TAMBAHKAN KODE INI KE app.py ANDA ===
+
+# Tambahkan import ini di bagian atas file, bersama import lainnya
+import io
+
+# === BACKUP API ROUTES (LENGKAP) ===
+
+@app.route('/api/backup/list')
+def api_list_backups():
+    """List all available backup files"""
+    try:
+        # Fungsi ini sudah ada di file Anda, pastikan sudah didefinisikan
+        ensure_backup_folder() 
+        
+        backups = []
+        
+        if os.path.exists(BACKUP_FOLDER):
+            for filename in os.listdir(BACKUP_FOLDER):
+                if allowed_backup_file(filename):
+                    file_path = os.path.join(BACKUP_FOLDER, filename)
+                    if os.path.isfile(file_path):
+                        # Dapatkan informasi file
+                        stats = os.stat(file_path)
+                        size_bytes = stats.st_size
+                        created_at = datetime.fromtimestamp(stats.st_ctime).strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        backups.append({
+                            'filename': filename,
+                            'created_at': created_at,
+                            'size': size_bytes,
+                            'size_human': format_file_size(size_bytes)
+                        })
+        
+        # Urutkan dari yang terbaru
+        backups.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        return jsonify({'success': True, 'backups': backups})
+    except Exception as e:
+        print(f"Error listing backups: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/backup/create', methods=['POST'])
+def api_create_backup():
+    """Create a new database backup"""
+    try:
+        ensure_backup_folder()
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"radius_backup_{timestamp}.sql"
+        filepath = os.path.join(BACKUP_FOLDER, filename)
+        
+        # Get database connection info from config
+        db_host = app.config['DB_HOST']
+        db_name = app.config['DB_NAME']
+        db_user = app.config['DB_USER']
+        db_password = app.config['DB_PASSWORD']
+        db_port = app.config['DB_PORT']
+        
+        # Create pg_dump command
+        cmd = [
+            'pg_dump',
+            f'--host={db_host}',
+            f'--port={db_port}',
+            f'--username={db_user}',
+            f'--dbname={db_name}',
+            '--no-password',
+            '--clean',
+            '--if-exists',
+            '--inserts',
+            '--column-inserts',
+            '--attribute-inserts',
+            '--disable-dollar-quoting',
+            '--disable-triggers',
+            '--no-tablespaces',
+            '--no-unlogged',
+            '--format=custom',
+            '--file=' + filepath
+        ]
+        
+        # Set PGPASSWORD environment variable for pg_dump
+        env = os.environ.copy()
+        env['PGPASSWORD'] = db_password
+        
+        # Execute pg_dump command
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        
+        if result.returncode == 0:
+            return jsonify({
+                'success': True, 
+                'message': 'Backup created successfully',
+                'filename': filename
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'error': f"pg_dump failed: {result.stderr}"
+            }), 500
+            
+    except Exception as e:
+        print(f"Error creating backup: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/backup/download/<filename>')
+def api_download_backup(filename):
+    """Download a specific backup file"""
+    try:
+        # Validate filename
+        if not allowed_backup_file(filename):
+            return jsonify({'success': False, 'error': 'Invalid file type'}), 400
+        
+        filepath = os.path.join(BACKUP_FOLDER, filename)
+        
+        if not os.path.exists(filepath) or not os.path.isfile(filepath):
+            return jsonify({'success': False, 'error': 'File not found'}), 404
+        
+        return send_file(
+            filepath, 
+            as_attachment=True, 
+            download_name=filename
+        )
+    except Exception as e:
+        print(f"Error downloading backup: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/backup/delete/<filename>', methods=['DELETE'])
+def api_delete_backup(filename):
+    """Delete a specific backup file"""
+    try:
+        # Validate filename
+        if not allowed_backup_file(filename):
+            return jsonify({'success': False, 'error': 'Invalid file type'}), 400
+        
+        filepath = os.path.join(BACKUP_FOLDER, filename)
+        
+        if not os.path.exists(filepath) or not os.path.isfile(filepath):
+            return jsonify({'success': False, 'error': 'File not found'}), 404
+        
+        os.remove(filepath)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Backup deleted successfully'
+        })
+    except Exception as e:
+        print(f"Error deleting backup: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/backup/upload', methods=['POST'])
+def api_upload_backup():
+    """Upload a backup file"""
+    try:
+        ensure_backup_folder()
+        
+        if 'backup_file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file part'}), 400
+        
+        file = request.files['backup_file']
+        
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No selected file'}), 400
+        
+        if file and allowed_backup_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(BACKUP_FOLDER, filename)
+            
+            # Save the file
+            file.save(filepath)
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Backup uploaded successfully',
+                'filename': filename
+            })
+        else:
+            return jsonify({'success': False, 'error': 'File type not allowed'}), 400
+            
+    except Exception as e:
+        print(f"Error uploading backup: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/backup/restore', methods=['POST'])
+def api_restore_backup():
+    """Restore database from a backup file"""
+    try:
+        data = request.get_json()
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({'success': False, 'error': 'Filename is required'}), 400
+        
+        # Validate filename
+        if not allowed_backup_file(filename):
+            return jsonify({'success': False, 'error': 'Invalid file type'}), 400
+        
+        filepath = os.path.join(BACKUP_FOLDER, filename)
+        
+        if not os.path.exists(filepath) or not os.path.isfile(filepath):
+            return jsonify({'success': False, 'error': 'File not found'}), 404
+        
+        # Get database connection info from config
+        db_host = app.config['DB_HOST']
+        db_name = app.config['DB_NAME']
+        db_user = app.config['DB_USER']
+        db_password = app.config['DB_PASSWORD']
+        db_port = app.config['DB_PORT']
+        
+        # Create psql command to restore from backup
+        cmd = [
+            'psql',
+            f'--host={db_host}',
+            f'--port={db_port}',
+            f'--username={db_user}',
+            f'--dbname={db_name}',
+            '--no-password',
+            '--file=' + filepath
+        ]
+        
+        # Set PGPASSWORD environment variable for psql
+        env = os.environ.copy()
+        env['PGPASSWORD'] = db_password
+        
+        # Execute psql command
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        
+        if result.returncode == 0:
+            return jsonify({
+                'success': True, 
+                'message': 'Database restored successfully'
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'error': f"psql failed: {result.stderr}"
+            }), 500
+            
+    except Exception as e:
+        print(f"Error restoring backup: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# === AKHIRI KODE TAMBAHAN ===
 
 if __name__ == '__main__':
     start_cleanup_thread()
