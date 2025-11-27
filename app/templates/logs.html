@@ -6,9 +6,9 @@
 
 {% block content %}
 <div class="fade-in">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-6">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-semibold text-gray-800">Recent Authentication Logs</h3>
+            <h3 class="text-lg font-semibold text-gray-100">Recent Authentication Logs</h3>
             <button onclick="loadLogs()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
                 <i class="fas fa-sync-alt"></i>
                 <span>Refresh</span>
@@ -17,8 +17,8 @@
 
         <div id="logsList" class="space-y-3">
             <div class="text-center py-8">
-                <i class="fas fa-spinner fa-spin text-blue-600 text-2xl mb-2"></i>
-                <p class="text-gray-600">Loading logs...</p>
+                <i class="fas fa-spinner fa-spin text-blue-400 text-2xl mb-2"></i>
+                <p class="text-gray-400">Loading logs...</p>
             </div>
         </div>
     </div>
@@ -27,6 +27,25 @@
 
 {% block scripts %}
 <script>
+    // Color mapping for dark theme
+    const colorMap = {
+        green: {
+            bg: 'bg-green-900/30',
+            text: 'text-green-400',
+            badgeText: 'text-green-300'
+        },
+        red: {
+            bg: 'bg-red-900/30',
+            text: 'text-red-400',
+            badgeText: 'text-red-300'
+        },
+        yellow: {
+            bg: 'bg-yellow-900/30',
+            text: 'text-yellow-400',
+            badgeText: 'text-yellow-300'
+        }
+    };
+
     // Simple load logs function
     function loadLogs() {
         console.log('Refreshing logs...');
@@ -35,8 +54,8 @@
         // Show loading
         logsList.innerHTML = `
             <div class="text-center py-8">
-                <i class="fas fa-spinner fa-spin text-blue-600 text-2xl mb-2"></i>
-                <p class="text-gray-600">Loading logs...</p>
+                <i class="fas fa-spinner fa-spin text-blue-400 text-2xl mb-2"></i>
+                <p class="text-gray-400">Loading logs...</p>
             </div>
         `;
 
@@ -46,7 +65,7 @@
             .then(data => {
                 if (data.error) {
                     logsList.innerHTML = `
-                        <div class="text-center py-8 text-red-600">
+                        <div class="text-center py-8 text-red-400">
                             <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
                             <p>Error: ${data.error}</p>
                         </div>
@@ -67,35 +86,34 @@
                 // Build logs HTML
                 let html = '';
                 data.forEach(log => {
-                    let icon, color, bgColor;
+                    let icon, color;
                     
                     if (log.reply === 'Access-Accept') {
                         icon = 'check';
                         color = 'green';
-                        bgColor = 'green';
                     } else if (log.reply === 'Access-Reject') {
                         icon = 'times';
                         color = 'red';
-                        bgColor = 'red';
                     } else {
                         icon = 'question';
                         color = 'yellow';
-                        bgColor = 'yellow';
                     }
                     
+                    const theme = colorMap[color];
+                    
                     html += `
-                    <div class="flex items-start space-x-4 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-${bgColor}-100 text-${color}-600">
+                    <div class="flex items-start space-x-4 p-3 border border-gray-600 rounded-lg hover:bg-gray-700/50 transition-colors">
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${theme.bg} ${theme.text}">
                             <i class="fas fa-${icon} text-sm"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center space-x-2 mb-1">
-                                <span class="font-medium text-gray-900">${log.username}</span>
-                                <span class="text-xs px-2 py-1 rounded bg-${bgColor}-100 text-${color}-800">
+                                <span class="font-medium text-gray-100">${log.username}</span>
+                                <span class="text-xs px-2 py-1 rounded ${theme.bg} ${theme.badgeText}">
                                     ${log.reply || 'Access-Request'}
                                 </span>
                             </div>
-                            <p class="text-sm text-gray-600">${new Date(log.authdate).toLocaleString()}</p>
+                            <p class="text-sm text-gray-400">${new Date(log.authdate).toLocaleString()}</p>
                         </div>
                     </div>
                     `;
@@ -106,7 +124,7 @@
             .catch(error => {
                 console.error('Error:', error);
                 logsList.innerHTML = `
-                    <div class="text-center py-8 text-red-600">
+                    <div class="text-center py-8 text-red-400">
                         <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
                         <p>Failed to load logs</p>
                     </div>
