@@ -1,12 +1,14 @@
 {% extends "base.html" %}
+
 {% block title %}Users - RADIUS Manager{% endblock %}
 {% block page_title %}Users{% endblock %}
 {% block page_subtitle %}Manage PPPoE Users & Bandwidth Limits{% endblock %}
+
 {% block content %}
 <div class="fade-in">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-6">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-semibold text-gray-800">PPPoE Users</h3>
+            <h3 class="text-lg font-semibold text-gray-100">PPPoE Users</h3>
             <button onclick="openAddUserModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
                 <i class="fas fa-user-plus"></i>
                 <span>Add User</span>
@@ -14,19 +16,19 @@
         </div>
         <div id="usersList" class="space-y-4">
             <div class="text-center py-8">
-                <i class="fas fa-spinner fa-spin text-blue-600 text-2xl mb-2"></i>
-                <p class="text-gray-600">Loading users...</p>
+                <i class="fas fa-spinner fa-spin text-blue-400 text-2xl mb-2"></i>
+                <p class="text-gray-400">Loading users...</p>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Add User Modal -->
-<div id="addUserModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+<div id="addUserModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+    <div class="bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto border border-gray-700">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">Add New PPPoE User</h3>
-            <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-600">
+            <h3 class="text-lg font-semibold text-gray-100">Add New PPPoE User</h3>
+            <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-200">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -34,40 +36,40 @@
             <!-- Basic Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Username *</label>
-                    <input type="text" name="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="user123">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Username *</label>
+                    <input type="text" name="username" required class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100" placeholder="user123">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                    <input type="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="••••••••">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Password *</label>
+                    <input type="password" name="password" required class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100" placeholder="•••••••">
                 </div>
             </div>
 
             <!-- IP Configuration -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
-                <input type="text" name="ip_address" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="192.168.1.100">
-                <p class="text-xs text-gray-500 mt-1">Leave empty for dynamic IP assignment</p>
+                <label class="block text-sm font-medium text-gray-300 mb-1">IP Address</label>
+                <input type="text" name="ip_address" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100" placeholder="192.168.1.100">
+                <p class="text-xs text-gray-400 mt-1">Leave empty for dynamic IP assignment</p>
             </div>
 
             <!-- Bandwidth Control - ENHANCED -->
-            <div class="border-t pt-4">
-                <h4 class="text-md font-semibold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+            <div class="border-t border-gray-700 pt-4">
+                <h4 class="text-md font-semibold text-gray-100 mb-4 flex items-center">
+                    <i class="fas fa-tachometer-alt mr-2 text-blue-400"></i>
                     Bandwidth Control (Flexible like Simple Queue)
                 </h4>
                 
                 <!-- Configuration Mode Toggle -->
-                <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-                    <label class="block text-sm font-medium text-gray-700 mb-3">Configuration Mode:</label>
+                <div class="mb-6 bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                    <label class="block text-sm font-medium text-gray-300 mb-3">Configuration Mode:</label>
                     <div class="flex space-x-4">
                         <label class="flex items-center space-x-2 cursor-pointer">
                             <input type="radio" name="config_mode" value="simple" checked onchange="toggleConfigMode('simple')" class="form-radio text-blue-600">
-                            <span class="text-sm">Simple (Auto Burst)</span>
+                            <span class="text-sm text-gray-300">Simple (Auto Burst)</span>
                         </label>
                         <label class="flex items-center space-x-2 cursor-pointer">
                             <input type="radio" name="config_mode" value="advanced" onchange="toggleConfigMode('advanced')" class="form-radio text-blue-600">
-                            <span class="text-sm">Advanced (Manual Control)</span>
+                            <span class="text-sm text-gray-300">Advanced (Manual Control)</span>
                         </label>
                     </div>
                 </div>
@@ -76,13 +78,13 @@
                 <div id="simpleConfig" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">
                                 Max Limit (Download)
-                                <i class="fas fa-info-circle text-gray-400 cursor-help" title="Maximum download speed"></i>
+                                <i class="fas fa-info-circle text-gray-500 cursor-help" title="Maximum download speed"></i>
                             </label>
                             <div class="flex space-x-2">
-                                <input type="number" id="simpleDownload" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="updateRateLimitPreview()">
-                                <select id="simpleDownloadUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <input type="number" id="simpleDownload" value="10" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-100" onchange="updateRateLimitPreview()">
+                                <select id="simpleDownloadUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -90,13 +92,13 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">
                                 Max Limit (Upload)
-                                <i class="fas fa-info-circle text-gray-400 cursor-help" title="Maximum upload speed"></i>
+                                <i class="fas fa-info-circle text-gray-500 cursor-help" title="Maximum upload speed"></i>
                             </label>
                             <div class="flex space-x-2">
-                                <input type="number" id="simpleUpload" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="updateRateLimitPreview()">
-                                <select id="simpleUploadUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <input type="number" id="simpleUpload" value="10" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-100" onchange="updateRateLimitPreview()">
+                                <select id="simpleUploadUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -104,11 +106,11 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">
                                 Queue Priority
-                                <i class="fas fa-info-circle text-gray-400 cursor-help" title="1=Highest, 8=Lowest"></i>
+                                <i class="fas fa-info-circle text-gray-500 cursor-help" title="1=Highest, 8=Lowest"></i>
                             </label>
-                            <select id="simplePriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                            <select id="simplePriority" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                 <option value="1">1 - Highest</option>
                                 <option value="2">2 - Very High</option>
                                 <option value="3">3 - High</option>
@@ -122,38 +124,38 @@
                     </div>
 
                     <!-- Auto Burst Toggle -->
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="bg-green-900/30 border border-green-800/50 rounded-lg p-4">
                         <label class="flex items-center space-x-3 cursor-pointer">
                             <input type="checkbox" id="simpleEnableBurst" checked class="form-checkbox h-5 w-5 text-green-600 rounded" onchange="updateRateLimitPreview()">
                             <div>
-                                <span class="text-sm font-medium text-gray-700">Enable Auto Burst (Recommended)</span>
-                                <p class="text-xs text-gray-600 mt-1">Burst: 2x speed | Threshold: 50% | Time: 8s</p>
+                                <span class="text-sm font-medium text-gray-300">Enable Auto Burst (Recommended)</span>
+                                <p class="text-xs text-gray-400 mt-1">Burst: 2x speed | Threshold: 50% | Time: 8s</p>
                             </div>
                         </label>
                     </div>
 
                     <!-- Limit At (Guaranteed) -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="bg-blue-900/30 border border-blue-800/50 rounded-lg p-4">
                         <label class="flex items-center space-x-3 cursor-pointer mb-3">
                             <input type="checkbox" id="simpleEnableLimitAt" class="form-checkbox h-5 w-5 text-blue-600 rounded" onchange="toggleSimpleLimitAt()">
-                            <span class="text-sm font-medium text-gray-700">Set Guaranteed Bandwidth (Limit At)</span>
+                            <span class="text-sm font-medium text-gray-300">Set Guaranteed Bandwidth (Limit At)</span>
                         </label>
                         <div id="simpleLimitAtFields" class="hidden grid grid-cols-2 gap-4 mt-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Guaranteed Download</label>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Guaranteed Download</label>
                                 <div class="flex space-x-2">
-                                    <input type="number" id="simpleLimitAtDown" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
-                                    <select id="simpleLimitAtDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
+                                    <input type="number" id="simpleLimitAtDown" value="5" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateRateLimitPreview()">
+                                    <select id="simpleLimitAtDownUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateRateLimitPreview()">
                                         <option value="k">Kbps</option>
                                         <option value="M" selected>Mbps</option>
                                     </select>
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Guaranteed Upload</label>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Guaranteed Upload</label>
                                 <div class="flex space-x-2">
-                                    <input type="number" id="simpleLimitAtUp" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
-                                    <select id="simpleLimitAtUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
+                                    <input type="number" id="simpleLimitAtUp" value="5" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateRateLimitPreview()">
+                                    <select id="simpleLimitAtUpUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateRateLimitPreview()">
                                         <option value="k">Kbps</option>
                                         <option value="M" selected>Mbps</option>
                                     </select>
@@ -165,8 +167,8 @@
 
                 <!-- ADVANCED MODE -->
                 <div id="advancedConfig" class="hidden space-y-6">
-                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
-                        <p class="text-xs text-orange-800">
+                    <div class="bg-orange-900/30 border border-orange-800/50 rounded-lg p-3 mb-4">
+                        <p class="text-xs text-orange-300">
                             <i class="fas fa-exclamation-triangle mr-1"></i>
                             Advanced mode: Full manual control of all bandwidth parameters
                         </p>
@@ -175,10 +177,10 @@
                     <!-- Max Limit -->
                     <div class="grid grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Download</label>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Max Download</label>
                             <div class="flex space-x-2">
-                                <input type="number" id="advMaxDown" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
-                                <select id="advMaxDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <input type="number" id="advMaxDown" value="10" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
+                                <select id="advMaxDownUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -186,10 +188,10 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Upload</label>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Max Upload</label>
                             <div class="flex space-x-2">
-                                <input type="number" id="advMaxUp" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
-                                <select id="advMaxUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <input type="number" id="advMaxUp" value="10" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
+                                <select id="advMaxUpUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -201,10 +203,10 @@
                     <!-- Burst Rate -->
                     <div class="grid grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Download</label>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Burst Download</label>
                             <div class="flex space-x-2">
-                                <input type="number" id="advBurstDown" value="20" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
-                                <select id="advBurstDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <input type="number" id="advBurstDown" value="20" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
+                                <select id="advBurstDownUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -212,10 +214,10 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Upload</label>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Burst Upload</label>
                             <div class="flex space-x-2">
-                                <input type="number" id="advBurstUp" value="20" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
-                                <select id="advBurstUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <input type="number" id="advBurstUp" value="20" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
+                                <select id="advBurstUpUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -227,10 +229,10 @@
                     <!-- Burst Threshold -->
                     <div class="grid grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Threshold Download</label>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Burst Threshold Download</label>
                             <div class="flex space-x-2">
-                                <input type="number" id="advThreshDown" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
-                                <select id="advThreshDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <input type="number" id="advThreshDown" value="5" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
+                                <select id="advThreshDownUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -238,10 +240,10 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Threshold Upload</label>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Burst Threshold Upload</label>
                             <div class="flex space-x-2">
-                                <input type="number" id="advThreshUp" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
-                                <select id="advThreshUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                                <input type="number" id="advThreshUp" value="5" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
+                                <select id="advThreshUpUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -253,12 +255,12 @@
                     <!-- Burst Time & Priority -->
                     <div class="grid grid-cols-3 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Burst Time (seconds)</label>
-                            <input type="number" id="advBurstTime" value="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Burst Time (seconds)</label>
+                            <input type="number" id="advBurstTime" value="8" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                            <select id="advPriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="updateRateLimitPreview()">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Priority</label>
+                            <select id="advPriority" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateRateLimitPreview()">
                                 <option value="1">1 - Highest</option>
                                 <option value="2">2 - Very High</option>
                                 <option value="3">3 - High</option>
@@ -270,13 +272,14 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">
                                 <input type="checkbox" id="advEnableLimitAt" class="mr-2" onchange="toggleAdvLimitAt()">
                                 Limit At
                             </label>
                             <div id="advLimitAtField" class="hidden">
                                 <div class="flex space-x-2">
-                                    <input type="number" id="advLimitAtDown" value="5" placeholder="Down" class="flex-1 px-2 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">                                    <input type="number" id="advLimitAtUp" value="5" placeholder="Up" class="flex-1 px-2 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateRateLimitPreview()">
+                                    <input type="number" id="advLimitAtDown" value="5" placeholder="Down" class="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateRateLimitPreview()">
+                                    <input type="number" id="advLimitAtUp" value="5" placeholder="Up" class="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateRateLimitPreview()">
                                 </div>
                             </div>
                         </div>
@@ -284,7 +287,7 @@
                 </div>
 
                 <!-- REAL-TIME PREVIEW -->
-                <div class="bg-gray-900 rounded-lg p-4 mt-6">
+                <div class="bg-gray-900 rounded-lg p-4 mt-6 border border-gray-700">
                     <div class="flex justify-between items-center mb-2">
                         <label class="text-sm font-medium text-gray-300">
                             <i class="fas fa-code mr-2"></i>
@@ -299,26 +302,26 @@
             </div>
 
             <!-- Additional Settings -->
-            <div class="border-t pt-4">
-                <h4 class="text-md font-semibold text-gray-800 mb-4">Additional Settings</h4>
+            <div class="border-t border-gray-700 pt-4">
+                <h4 class="text-md font-semibold text-gray-100 mb-4">Additional Settings</h4>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Limit</label>
-                        <input type="text" name="data_limit" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="10GB">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Data Limit</label>
+                        <input type="text" name="data_limit" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" placeholder="10GB">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Session Timeout (s)</label>
-                        <input type="number" name="session_timeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="3600">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Session Timeout (s)</label>
+                        <input type="number" name="session_timeout" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" placeholder="3600">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Idle Timeout (s)</label>
-                        <input type="number" name="idle_timeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="300">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Idle Timeout (s)</label>
+                        <input type="number" name="idle_timeout" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" placeholder="300">
                     </div>
                 </div>
             </div>
 
-            <div class="flex space-x-3 pt-4 border-t">
-                <button type="button" onclick="closeAddUserModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            <div class="flex space-x-3 pt-4 border-t border-gray-700">
+                <button type="button" onclick="closeAddUserModal()" class="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors">
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
@@ -330,11 +333,11 @@
 </div>
 
 <!-- Edit User Modal -->
-<div id="editUserModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+<div id="editUserModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+    <div class="bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto border border-gray-700">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">Edit PPPoE User</h3>
-            <button onclick="closeEditUserModal()" class="text-gray-400 hover:text-gray-600">
+            <h3 class="text-lg font-semibold text-gray-100">Edit PPPoE User</h3>
+            <button onclick="closeEditUserModal()" class="text-gray-400 hover:text-gray-200">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -344,40 +347,40 @@
             <!-- Basic Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <input type="text" id="editUsernameDisplay" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" placeholder="user123">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Username</label>
+                    <input type="text" id="editUsernameDisplay" readonly class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400" placeholder="user123">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">New Password (leave empty to keep current)</label>
-                    <input type="password" name="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="••••••••">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">New Password (leave empty to keep current)</label>
+                    <input type="password" name="password" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100" placeholder="•••••••">
                 </div>
             </div>
 
             <!-- IP Configuration -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
-                <input type="text" name="ip_address" id="editIpAddress" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="192.168.1.100">
-                <p class="text-xs text-gray-500 mt-1">Leave empty for dynamic IP assignment</p>
+                <label class="block text-sm font-medium text-gray-300 mb-1">IP Address</label>
+                <input type="text" name="ip_address" id="editIpAddress" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100" placeholder="192.168.1.100">
+                <p class="text-xs text-gray-400 mt-1">Leave empty for dynamic IP assignment</p>
             </div>
 
             <!-- Bandwidth Control -->
-            <div class="border-t pt-4">
-                <h4 class="text-md font-semibold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+            <div class="border-t border-gray-700 pt-4">
+                <h4 class="text-md font-semibold text-gray-100 mb-4 flex items-center">
+                    <i class="fas fa-tachometer-alt mr-2 text-blue-400"></i>
                     Bandwidth Control
                 </h4>
                 
                 <!-- Configuration Mode Toggle -->
-                <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-                    <label class="block text-sm font-medium text-gray-700 mb-3">Configuration Mode:</label>
+                <div class="mb-6 bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                    <label class="block text-sm font-medium text-gray-300 mb-3">Configuration Mode:</label>
                     <div class="flex space-x-4">
                         <label class="flex items-center space-x-2 cursor-pointer">
                             <input type="radio" name="config_mode" value="simple" checked onchange="toggleEditConfigMode('simple')" class="form-radio text-blue-600">
-                            <span class="text-sm">Simple (Auto Burst)</span>
+                            <span class="text-sm text-gray-300">Simple (Auto Burst)</span>
                         </label>
                         <label class="flex items-center space-x-2 cursor-pointer">
                             <input type="radio" name="config_mode" value="advanced" onchange="toggleEditConfigMode('advanced')" class="form-radio text-blue-600">
-                            <span class="text-sm">Advanced (Manual Control)</span>
+                            <span class="text-sm text-gray-300">Advanced (Manual Control)</span>
                         </label>
                     </div>
                 </div>
@@ -386,12 +389,12 @@
                 <div id="editSimpleConfig" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">
                                 Max Limit (Download)
                             </label>
                             <div class="flex space-x-2">
-                                <input type="number" id="editSimpleDownload" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="updateEditRateLimitPreview()">
-                                <select id="editSimpleDownloadUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateEditRateLimitPreview()">
+                                <input type="number" id="editSimpleDownload" value="10" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-100" onchange="updateEditRateLimitPreview()">
+                                <select id="editSimpleDownloadUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateEditRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -399,12 +402,12 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">
                                 Max Limit (Upload)
                             </label>
                             <div class="flex space-x-2">
-                                <input type="number" id="editSimpleUpload" value="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="updateEditRateLimitPreview()">
-                                <select id="editSimpleUploadUnit" class="px-3 py-2 border border-gray-300 rounded-lg" onchange="updateEditRateLimitPreview()">
+                                <input type="number" id="editSimpleUpload" value="10" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-100" onchange="updateEditRateLimitPreview()">
+                                <select id="editSimpleUploadUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateEditRateLimitPreview()">
                                     <option value="k">Kbps</option>
                                     <option value="M" selected>Mbps</option>
                                     <option value="G">Gbps</option>
@@ -412,10 +415,10 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">
                                 Queue Priority
                             </label>
-                            <select id="editSimplePriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="updateEditRateLimitPreview()">
+                            <select id="editSimplePriority" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" onchange="updateEditRateLimitPreview()">
                                 <option value="1">1 - Highest</option>
                                 <option value="2">2 - Very High</option>
                                 <option value="3">3 - High</option>
@@ -429,38 +432,38 @@
                     </div>
 
                     <!-- Auto Burst Toggle -->
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="bg-green-900/30 border border-green-800/50 rounded-lg p-4">
                         <label class="flex items-center space-x-3 cursor-pointer">
                             <input type="checkbox" id="editSimpleEnableBurst" checked class="form-checkbox h-5 w-5 text-green-600 rounded" onchange="updateEditRateLimitPreview()">
                             <div>
-                                <span class="text-sm font-medium text-gray-700">Enable Auto Burst (Recommended)</span>
-                                <p class="text-xs text-gray-600 mt-1">Burst: 2x speed | Threshold: 50% | Time: 8s</p>
+                                <span class="text-sm font-medium text-gray-300">Enable Auto Burst (Recommended)</span>
+                                <p class="text-xs text-gray-400 mt-1">Burst: 2x speed | Threshold: 50% | Time: 8s</p>
                             </div>
                         </label>
                     </div>
 
                     <!-- Limit At (Guaranteed) -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="bg-blue-900/30 border border-blue-800/50 rounded-lg p-4">
                         <label class="flex items-center space-x-3 cursor-pointer mb-3">
                             <input type="checkbox" id="editSimpleEnableLimitAt" class="form-checkbox h-5 w-5 text-blue-600 rounded" onchange="toggleEditSimpleLimitAt()">
-                            <span class="text-sm font-medium text-gray-700">Set Guaranteed Bandwidth (Limit At)</span>
+                            <span class="text-sm font-medium text-gray-300">Set Guaranteed Bandwidth (Limit At)</span>
                         </label>
                         <div id="editSimpleLimitAtFields" class="hidden grid grid-cols-2 gap-4 mt-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Guaranteed Download</label>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Guaranteed Download</label>
                                 <div class="flex space-x-2">
-                                    <input type="number" id="editSimpleLimitAtDown" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateEditRateLimitPreview()">
-                                    <select id="editSimpleLimitAtDownUnit" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateEditRateLimitPreview()">
+                                    <input type="number" id="editSimpleLimitAtDown" value="5" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateEditRateLimitPreview()">
+                                    <select id="editSimpleLimitAtDownUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateEditRateLimitPreview()">
                                         <option value="k">Kbps</option>
                                         <option value="M" selected>Mbps</option>
                                     </select>
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Guaranteed Upload</label>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Guaranteed Upload</label>
                                 <div class="flex space-x-2">
-                                    <input type="number" id="editSimpleLimitAtUp" value="5" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateEditRateLimitPreview()">
-                                    <select id="editSimpleLimitAtUpUnit" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateEditRateLimitPreview()">
+                                    <input type="number" id="editSimpleLimitAtUp" value="5" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateEditRateLimitPreview()">
+                                    <select id="editSimpleLimitAtUpUnit" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100" onchange="updateEditRateLimitPreview()">
                                         <option value="k">Kbps</option>
                                         <option value="M" selected>Mbps</option>
                                     </select>
@@ -472,8 +475,8 @@
 
                 <!-- ADVANCED MODE -->
                 <div id="editAdvancedConfig" class="hidden space-y-6">
-                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
-                        <p class="text-xs text-orange-800">
+                    <div class="bg-orange-900/30 border border-orange-800/50 rounded-lg p-3 mb-4">
+                        <p class="text-xs text-orange-300">
                             <i class="fas fa-exclamation-triangle mr-1"></i>
                             Advanced mode: Full manual control of all bandwidth parameters
                         </p>
@@ -481,15 +484,15 @@
 
                     <!-- Custom Rate Limit Input -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Custom Rate Limit String</label>
-                        <input type="text" id="editCustomRateLimit" class="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm" 
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Custom Rate Limit String</label>
+                        <input type="text" id="editCustomRateLimit" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg font-mono text-sm text-gray-100" 
                                placeholder="10M/10M 20M/20M 5M/5M 8/8 5" onchange="updateEditRateLimitPreview()">
-                        <p class="text-xs text-gray-500 mt-1">Enter Mikrotik rate-limit string directly</p>
+                        <p class="text-xs text-gray-400 mt-1">Enter Mikrotik rate-limit string directly</p>
                     </div>
                 </div>
 
                 <!-- REAL-TIME PREVIEW -->
-                <div class="bg-gray-900 rounded-lg p-4 mt-6">
+                <div class="bg-gray-900 rounded-lg p-4 mt-6 border border-gray-700">
                     <div class="flex justify-between items-center mb-2">
                         <label class="text-sm font-medium text-gray-300">
                             <i class="fas fa-code mr-2"></i>
@@ -504,26 +507,26 @@
             </div>
 
             <!-- Additional Settings -->
-            <div class="border-t pt-4">
-                <h4 class="text-md font-semibold text-gray-800 mb-4">Additional Settings</h4>
+            <div class="border-t border-gray-700 pt-4">
+                <h4 class="text-md font-semibold text-gray-100 mb-4">Additional Settings</h4>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Limit</label>
-                        <input type="text" name="data_limit" id="editDataLimit" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="10GB">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Data Limit</label>
+                        <input type="text" name="data_limit" id="editDataLimit" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" placeholder="10GB">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Session Timeout (s)</label>
-                        <input type="number" name="session_timeout" id="editSessionTimeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="3600">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Session Timeout (s)</label>
+                        <input type="number" name="session_timeout" id="editSessionTimeout" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" placeholder="3600">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Idle Timeout (s)</label>
-                        <input type="number" name="idle_timeout" id="editIdleTimeout" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="300">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Idle Timeout (s)</label>
+                        <input type="number" name="idle_timeout" id="editIdleTimeout" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100" placeholder="300">
                     </div>
                 </div>
             </div>
 
-            <div class="flex space-x-3 pt-4 border-t">
-                <button type="button" onclick="closeEditUserModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            <div class="flex space-x-3 pt-4 border-t border-gray-700">
+                <button type="button" onclick="closeEditUserModal()" class="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors">
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
@@ -767,42 +770,42 @@
                 let html = '';
                 users.forEach(user => {
                     const statusBadge = user.active_sessions > 0 
-                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>'
-                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Inactive</span>';
+                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-300">Active</span>'
+                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-600/50 text-gray-300">Inactive</span>';
                     
                     html += `
-                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                        <div class="bg-gray-700/50 rounded-lg shadow-sm border border-gray-600 p-4 hover:shadow-md transition-shadow hover:border-gray-500">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
                                     <div class="flex items-center space-x-2 mb-2">
-                                        <h4 class="font-semibold text-gray-800">${user.username}</h4>
+                                        <h4 class="font-semibold text-gray-100">${user.username}</h4>
                                         ${statusBadge}
                                     </div>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                                        <p class="text-gray-600">
-                                            <i class="fas fa-network-wired mr-1 text-gray-400"></i>
+                                        <p class="text-gray-400">
+                                            <i class="fas fa-network-wired mr-1 text-gray-500"></i>
                                             IP: ${user.ip_address || 'Dynamic'}
                                         </p>
-                                        <p class="text-gray-600">
-                                            <i class="fas fa-tachometer-alt mr-1 text-gray-400"></i>
+                                        <p class="text-gray-400">
+                                            <i class="fas fa-tachometer-alt mr-1 text-gray-500"></i>
                                             Rate: ${user.rate_limit || 'Not set'}
                                         </p>
-                                        <p class="text-gray-600">
-                                            <i class="fas fa-clock mr-1 text-gray-400"></i>
+                                        <p class="text-gray-400">
+                                            <i class="fas fa-clock mr-1 text-gray-500"></i>
                                             Session: ${user.session_timeout || 'Unlimited'}s
                                         </p>
-                                        <p class="text-gray-600">
-                                            <i class="fas fa-hourglass-half mr-1 text-gray-400"></i>
+                                        <p class="text-gray-400">
+                                            <i class="fas fa-hourglass-half mr-1 text-gray-500"></i>
                                             Idle: ${user.idle_timeout || 'Unlimited'}s
                                         </p>
-                                        ${user.data_limit ? `<p class="text-gray-600"><i class="fas fa-database mr-1 text-gray-400"></i> Data: ${user.data_limit}</p>` : ''}
+                                        ${user.data_limit ? `<p class="text-gray-400"><i class="fas fa-database mr-1 text-gray-500"></i> Data: ${user.data_limit}</p>` : ''}
                                     </div>
                                 </div>
                                 <div class="flex space-x-2 ml-4">
-                                    <button onclick="editUser('${user.username}')" class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors" title="Edit User">
+                                    <button onclick="editUser('${user.username}')" class="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-900/30 rounded-lg transition-colors" title="Edit User">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button onclick="deleteUser(${user.id}, '${user.username}')" class="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors" title="Delete User">
+                                    <button onclick="deleteUser(${user.id}, '${user.username}')" class="text-red-400 hover:text-red-300 p-2 hover:bg-red-900/30 rounded-lg transition-colors" title="Delete User">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -815,7 +818,7 @@
         } catch (error) {
             console.error('Error loading users:', error);
             usersList.innerHTML = `
-                <div class="text-center py-8 text-red-500">
+                <div class="text-center py-8 text-red-400">
                     <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
                     <p class="font-medium">Error loading users</p>
                     <p class="text-sm mt-1">${error.message}</p>
@@ -852,7 +855,7 @@
     async function editUser(username) {
         try {
             // Fetch user data
-            const response = await fetch(`/api/users`);
+            const response = await fetch('/api/users');
             const users = await response.json();
             const user = users.find(u => u.username === username);
             
@@ -918,10 +921,10 @@
         
         // Set color based on type
         const colors = {
-            success: 'bg-green-500 text-white',
-            error: 'bg-red-500 text-white',
-            info: 'bg-blue-500 text-white',
-            warning: 'bg-yellow-500 text-white'
+            success: 'bg-green-600 text-white',
+            error: 'bg-red-600 text-white',
+            info: 'bg-blue-600 text-white',
+            warning: 'bg-yellow-600 text-white'
         };
         
         notification.classList.add(...colors[type].split(' '));
