@@ -537,39 +537,52 @@ def api_logs():
 
 @app.route('/api/auth-activity')
 def api_auth_activity():
-    """Get authentication activity for the last 30 minutes"""
+    """Get authentication activity for the last 30 minutes - FIXED"""
     try:
+        # Query ini lebih robust. Ia menghasilkan 30 baris, satu untuk setiap menit.
+        # Jika tidak ada aktivitas di menit tertentu, nilainya akan 0.
         activity = execute_query("""
-            SELECT DATE_TRUNC('minute', authdate) as minute,
-                   COUNT(*) as attempts
-            FROM radpostauth
-            WHERE authdate >= NOW() - INTERVAL '30 minutes'
-            GROUP BY DATE_TRUNC('minute', authdate)
-            ORDER BY minute
+            SELECT 
+                minute, 
+                COUNT(p.authdate) as attempts
+            FROM (
+                SELECT generate_series(
+                    NOW() - INTERVAL '30 minutes', 
+                    NOW(), 
+                    INTERVAL '1 minute'
+                ) as minute
+            ) minutes
+            LEFT JOIN radpostauth p ON DATE_TRUNC('minute', p.authdate) = minutes.minute
+            GROUP BY minutes.minute
+            ORDER BY minutes.minute
         """)
         
         labels = []
         data = []
         for item in activity:
+            # Format label HH:MM
             labels.append(item['minute'].strftime('%H:%M'))
             data.append(item['attempts'])
         
         return jsonify({'labels': labels, 'data': data})
     except Exception as e:
         print(f"Error in auth activity: {str(e)}")
+        # Kembalikan data kosong dengan struktur yang benar
         return jsonify({'labels': [], 'data': []})
 
 @app.route('/api/sessions-by-nas')
 def api_sessions_by_nas():
-    """Get session distribution by NAS device - FIXED TYPE CASTING"""
+    """Get session distribution by NAS device - FIXED with HOST() function"""
     try:
+        # Gunakan fungsi HOST() untuk menghilangkan /32 dari alamat IP INET
+        # sehingga bisa dibandingkan dengan nasname yang bertipe TEXT
         sessions = execute_query("""
-            SELECT COALESCE(nas.shortname, nas.nasname, 'Unknown') as nasname,
-                   COUNT(radacct.acctsessionid) as session_count
-            FROM radacct
-            LEFT JOIN nas ON CAST(radacct.nasipaddress AS TEXT) = CAST(nas.nasname AS TEXT)
-            WHERE radacct.acctstoptime IS NULL
-            GROUP BY COALESCE(nas.shortname, nas.nasname, 'Unknown')
+            SELECT COALESCE(n.shortname, n.nasname, 'Unknown') as nasname,
+                   COUNT(r.acctsessionid) as session_count
+            FROM radacct r
+            LEFT JOIN nas n ON HOST(r.nasipaddress) = n.nasname
+            WHERE r.acctstoptime IS NULL
+            GROUP BY COALESCE(n.shortname, n.nasname, 'Unknown')
             ORDER BY session_count DESC
         """)
         
@@ -582,7 +595,8 @@ def api_sessions_by_nas():
         return jsonify({'labels': labels, 'data': data})
     except Exception as e:
         print(f"Error in sessions by NAS: {str(e)}")
-        return jsonify({'labels': [], 'data': []})
+        # Jika terjadi error, tetap kembalikan struktur yang benar agar frontend tidak error
+        return jsonify({'labels': ['Error'], 'data': [0]})
 
 @app.route('/api/recent-activity')
 def api_recent_activity():
