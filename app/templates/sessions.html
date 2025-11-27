@@ -6,11 +6,11 @@
 
 {% block content %}
 <div class="fade-in">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-6">
         <div class="flex justify-between items-center mb-6">
             <div>
-                <h3 class="text-lg font-semibold text-gray-800">Active PPPoE Sessions</h3>
-                <p class="text-sm text-gray-600 mt-1">Real-time connection monitoring dengan informasi lengkap</p>
+                <h3 class="text-lg font-semibold text-gray-100">Active PPPoE Sessions</h3>
+                <p class="text-sm text-gray-400 mt-1">Real-time connection monitoring dengan informasi lengkap</p>
             </div>
             <div class="flex space-x-2">
                 <button onclick="loadSessions()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
@@ -26,64 +26,64 @@
 
         <!-- Session Statistics Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+            <div class="bg-gradient-to-br from-blue-900/30 to-blue-800/30 rounded-lg p-4 border border-blue-800/50">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-blue-700 font-medium">Total Sessions</p>
-                        <p id="totalSessions" class="text-3xl font-bold text-blue-900 mt-1">0</p>
+                        <p class="text-sm text-blue-300 font-medium">Total Sessions</p>
+                        <p id="totalSessions" class="text-3xl font-bold text-blue-100 mt-1">0</p>
                     </div>
-                    <div class="bg-blue-200 rounded-full p-3">
-                        <i class="fas fa-users text-blue-700 text-2xl"></i>
+                    <div class="bg-blue-800/50 rounded-full p-3">
+                        <i class="fas fa-users text-blue-400 text-2xl"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+            <div class="bg-gradient-to-br from-green-900/30 to-green-800/30 rounded-lg p-4 border border-green-800/50">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-green-700 font-medium">Total Download</p>
-                        <p id="totalDownload" class="text-2xl font-bold text-green-900 mt-1">0 GB</p>
+                        <p class="text-sm text-green-300 font-medium">Total Download</p>
+                        <p id="totalDownload" class="text-2xl font-bold text-green-100 mt-1">0 GB</p>
                     </div>
-                    <div class="bg-green-200 rounded-full p-3">
-                        <i class="fas fa-download text-green-700 text-2xl"></i>
+                    <div class="bg-green-800/50 rounded-full p-3">
+                        <i class="fas fa-download text-green-400 text-2xl"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+            <div class="bg-gradient-to-br from-purple-900/30 to-purple-800/30 rounded-lg p-4 border border-purple-800/50">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-purple-700 font-medium">Total Upload</p>
-                        <p id="totalUpload" class="text-2xl font-bold text-purple-900 mt-1">0 GB</p>
+                        <p class="text-sm text-purple-300 font-medium">Total Upload</p>
+                        <p id="totalUpload" class="text-2xl font-bold text-purple-100 mt-1">0 GB</p>
                     </div>
-                    <div class="bg-purple-200 rounded-full p-3">
-                        <i class="fas fa-upload text-purple-700 text-2xl"></i>
+                    <div class="bg-purple-800/50 rounded-full p-3">
+                        <i class="fas fa-upload text-purple-400 text-2xl"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+            <div class="bg-gradient-to-br from-orange-900/30 to-orange-800/30 rounded-lg p-4 border border-orange-800/50">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-orange-700 font-medium">Avg Duration</p>
-                        <p id="avgDuration" class="text-2xl font-bold text-orange-900 mt-1">0h 0m</p>
+                        <p class="text-sm text-orange-300 font-medium">Avg Duration</p>
+                        <p id="avgDuration" class="text-2xl font-bold text-orange-100 mt-1">0h 0m</p>
                     </div>
-                    <div class="bg-orange-200 rounded-full p-3">
-                        <i class="fas fa-clock text-orange-700 text-2xl"></i>
+                    <div class="bg-orange-800/50 rounded-full p-3">
+                        <i class="fas fa-clock text-orange-400 text-2xl"></i>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Filter & Search -->
-        <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+        <div class="bg-gray-700/50 rounded-lg p-4 mb-6 border border-gray-600">
             <div class="flex flex-wrap items-center gap-3">
                 <div class="flex-1 min-w-[200px]">
                     <input type="text" id="searchInput" placeholder="Cari username..." 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
                            onkeyup="filterSessions()">
                 </div>
-                <select id="sortBy" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="sortSessions()">
+                <select id="sortBy" class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100">
                     <option value="duration_desc">Duration (Terlama)</option>
                     <option value="duration_asc">Duration (Terbaru)</option>
                     <option value="download_desc">Download (Terbesar)</option>
@@ -96,8 +96,8 @@
         <!-- Sessions List -->
         <div id="sessionsList" class="space-y-4">
             <div class="text-center py-8">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                <p class="text-gray-600 font-medium">Loading active sessions...</p>
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-3"></div>
+                <p class="text-gray-400 font-medium">Loading active sessions...</p>
                 <p class="text-gray-500 text-sm">Please wait...</p>
             </div>
         </div>
@@ -120,10 +120,10 @@
             if (data.error) {
                 sessionsList.innerHTML = `
                     <div class="text-center py-8">
-                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                            <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                        <div class="bg-red-900/50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
                         </div>
-                        <p class="text-red-600 font-medium">Error loading sessions</p>
+                        <p class="text-red-400 font-medium">Error loading sessions</p>
                         <p class="text-red-500 text-sm mt-1">${data.error}</p>
                         <button onclick="loadSessions()" class="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
                             Try Again
@@ -138,10 +138,10 @@
             if (data.length === 0) {
                 sessionsList.innerHTML = `
                     <div class="text-center py-12">
-                        <div class="bg-gray-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                            <i class="fas fa-plug text-gray-400 text-3xl"></i>
+                        <div class="bg-gray-700/50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-plug text-gray-500 text-3xl"></i>
                         </div>
-                        <p class="text-gray-700 font-semibold text-lg">No Active Sessions</p>
+                        <p class="text-gray-300 font-semibold text-lg">No Active Sessions</p>
                         <p class="text-gray-500 text-sm mt-2">All PPPoE connections are currently idle</p>
                     </div>
                 `;
@@ -160,8 +160,8 @@
             console.error('Error loading sessions:', error);
             document.getElementById('sessionsList').innerHTML = `
                 <div class="text-center py-8">
-                    <i class="fas fa-exclamation-triangle text-red-600 text-2xl mb-2"></i>
-                    <p class="text-red-600">Network error: ${error.message}</p>
+                    <i class="fas fa-exclamation-triangle text-red-400 text-2xl mb-2"></i>
+                    <p class="text-red-400">Network error: ${error.message}</p>
                 </div>
             `;
         }
@@ -182,7 +182,7 @@
             });
             
             return `
-                <div class="bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 rounded-xl p-5 border-2 border-green-200 hover:border-green-400 transition-all shadow-sm hover:shadow-md">
+                <div class="bg-gradient-to-r from-gray-700/50 via-gray-700/30 to-gray-700/50 rounded-xl p-5 border-2 border-gray-600 hover:border-gray-500 transition-all shadow-sm hover:shadow-md">
                     <!-- Header -->
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center space-x-3">
@@ -191,11 +191,11 @@
                                 <div class="absolute inset-0 w-4 h-4 bg-green-400 rounded-full animate-ping"></div>
                             </div>
                             <div>
-                                <h4 class="font-bold text-gray-800 text-lg">${session.username}</h4>
-                                <p class="text-xs text-gray-500">Session #${index + 1} • ${session.acctsessionid}</p>
+                                <h4 class="font-bold text-gray-100 text-lg">${session.username}</h4>
+                                <p class="text-xs text-gray-400">Session #${index + 1} • ${session.acctsessionid}</p>
                             </div>
                         </div>
-                        <span class="bg-green-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-sm flex items-center space-x-1">
+                        <span class="bg-green-600 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-sm flex items-center space-x-1">
                             <i class="fas fa-circle text-xs animate-pulse"></i>
                             <span>LIVE</span>
                         </span>
@@ -203,88 +203,88 @@
                     
                     <!-- Network Info Grid -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                            <p class="text-xs text-gray-500 mb-1 flex items-center">
-                                <i class="fas fa-server text-gray-400 mr-1"></i>
+                        <div class="bg-gray-800/50 rounded-lg p-3 shadow-sm border border-gray-600">
+                            <p class="text-xs text-gray-400 mb-1 flex items-center">
+                                <i class="fas fa-server text-gray-500 mr-1"></i>
                                 NAS IP
                             </p>
-                            <p class="font-mono text-sm font-semibold text-gray-800">${session.nasipaddress}</p>
+                            <p class="font-mono text-sm font-semibold text-gray-100">${session.nasipaddress}</p>
                         </div>
                         
-                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                            <p class="text-xs text-gray-500 mb-1 flex items-center">
-                                <i class="fas fa-network-wired text-gray-400 mr-1"></i>
+                        <div class="bg-gray-800/50 rounded-lg p-3 shadow-sm border border-gray-600">
+                            <p class="text-xs text-gray-400 mb-1 flex items-center">
+                                <i class="fas fa-network-wired text-gray-500 mr-1"></i>
                                 Client IP
                             </p>
-                            <p class="font-mono text-sm font-semibold ${session.framedipaddress ? 'text-blue-600' : 'text-gray-400'}">${session.framedipaddress || 'Dynamic'}</p>
+                            <p class="font-mono text-sm font-semibold ${session.framedipaddress ? 'text-blue-400' : 'text-gray-500'}">${session.framedipaddress || 'Dynamic'}</p>
                         </div>
                         
-                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                            <p class="text-xs text-gray-500 mb-1 flex items-center">
-                                <i class="fas fa-ethernet text-gray-400 mr-1"></i>
+                        <div class="bg-gray-800/50 rounded-lg p-3 shadow-sm border border-gray-600">
+                            <p class="text-xs text-gray-400 mb-1 flex items-center">
+                                <i class="fas fa-ethernet text-gray-500 mr-1"></i>
                                 NAS Port
                             </p>
-                            <p class="text-sm font-semibold text-gray-800">${session.nasportid || 'N/A'}</p>
+                            <p class="text-sm font-semibold text-gray-100">${session.nasportid || 'N/A'}</p>
                         </div>
                         
-                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                            <p class="text-xs text-gray-500 mb-1 flex items-center">
-                                <i class="fas fa-sitemap text-gray-400 mr-1"></i>
+                        <div class="bg-gray-800/50 rounded-lg p-3 shadow-sm border border-gray-600">
+                            <p class="text-xs text-gray-400 mb-1 flex items-center">
+                                <i class="fas fa-sitemap text-gray-500 mr-1"></i>
                                 Port Type
                             </p>
-                            <p class="text-sm font-semibold text-gray-800">${session.nasporttype || 'Virtual'}</p>
+                            <p class="text-sm font-semibold text-gray-100">${session.nasporttype || 'Virtual'}</p>
                         </div>
                     </div>
                     
                     <!-- Time Info Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                            <p class="text-xs text-gray-500 mb-1 flex items-center">
-                                <i class="fas fa-calendar-alt text-gray-400 mr-1"></i>
+                        <div class="bg-gray-800/50 rounded-lg p-3 shadow-sm border border-gray-600">
+                            <p class="text-xs text-gray-400 mb-1 flex items-center">
+                                <i class="fas fa-calendar-alt text-gray-500 mr-1"></i>
                                 Start Time
                             </p>
-                            <p class="text-sm font-semibold text-gray-800">${startTime}</p>
+                            <p class="text-sm font-semibold text-gray-100">${startTime}</p>
                         </div>
                         
-                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                            <p class="text-xs text-gray-500 mb-1 flex items-center">
-                                <i class="fas fa-hourglass-half text-gray-400 mr-1"></i>
+                        <div class="bg-gray-800/50 rounded-lg p-3 shadow-sm border border-gray-600">
+                            <p class="text-xs text-gray-400 mb-1 flex items-center">
+                                <i class="fas fa-hourglass-half text-gray-500 mr-1"></i>
                                 Duration
                             </p>
-                            <p class="text-sm font-semibold text-blue-600">${duration}</p>
+                            <p class="text-sm font-semibold text-blue-400">${duration}</p>
                         </div>
                         
-                        <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                            <p class="text-xs text-gray-500 mb-1 flex items-center">
-                                <i class="fas fa-layer-group text-gray-400 mr-1"></i>
+                        <div class="bg-gray-800/50 rounded-lg p-3 shadow-sm border border-gray-600">
+                            <p class="text-xs text-gray-400 mb-1 flex items-center">
+                                <i class="fas fa-layer-group text-gray-500 mr-1"></i>
                                 Protocol
                             </p>
-                            <p class="text-sm font-semibold text-gray-800">${session.framedprotocol || 'PPP'}</p>
+                            <p class="text-sm font-semibold text-gray-100">${session.framedprotocol || 'PPP'}</p>
                         </div>
                     </div>
                     
                     <!-- Data Usage -->
                     ${(session.acctinputoctets || session.acctoutputoctets) ? `
                         <div class="grid grid-cols-2 gap-3 mb-3">
-                            <div class="bg-gradient-to-br from-blue-100 to-blue-50 p-4 rounded-lg border border-blue-200">
+                            <div class="bg-gradient-to-br from-blue-900/30 to-blue-800/30 p-4 rounded-lg border border-blue-800/50">
                                 <div class="flex items-center justify-between mb-2">
-                                    <span class="text-sm font-semibold text-blue-700">Download</span>
-                                    <div class="bg-blue-200 rounded-full p-2">
-                                        <i class="fas fa-download text-blue-600 text-sm"></i>
+                                    <span class="text-sm font-semibold text-blue-300">Download</span>
+                                    <div class="bg-blue-800/50 rounded-full p-2">
+                                        <i class="fas fa-download text-blue-400 text-sm"></i>
                                     </div>
                                 </div>
-                                <p class="text-xl font-bold text-blue-900">${formatBytes(session.acctinputoctets || 0)}</p>
-                                <p class="text-xs text-blue-600 mt-1">${formatBytesShort(session.acctinputoctets || 0)}</p>
+                                <p class="text-xl font-bold text-blue-100">${formatBytes(session.acctinputoctets || 0)}</p>
+                                <p class="text-xs text-blue-400 mt-1">${formatBytesShort(session.acctinputoctets || 0)}</p>
                             </div>
-                            <div class="bg-gradient-to-br from-purple-100 to-purple-50 p-4 rounded-lg border border-purple-200">
+                            <div class="bg-gradient-to-br from-purple-900/30 to-purple-800/30 p-4 rounded-lg border border-purple-800/50">
                                 <div class="flex items-center justify-between mb-2">
-                                    <span class="text-sm font-semibold text-purple-700">Upload</span>
-                                    <div class="bg-purple-200 rounded-full p-2">
-                                        <i class="fas fa-upload text-purple-600 text-sm"></i>
+                                    <span class="text-sm font-semibold text-purple-300">Upload</span>
+                                    <div class="bg-purple-800/50 rounded-full p-2">
+                                        <i class="fas fa-upload text-purple-400 text-sm"></i>
                                     </div>
                                 </div>
-                                <p class="text-xl font-bold text-purple-900">${formatBytes(session.acctoutputoctets || 0)}</p>
-                                <p class="text-xs text-purple-600 mt-1">${formatBytesShort(session.acctoutputoctets || 0)}</p>
+                                <p class="text-xl font-bold text-purple-100">${formatBytes(session.acctoutputoctets || 0)}</p>
+                                <p class="text-xs text-purple-400 mt-1">${formatBytesShort(session.acctoutputoctets || 0)}</p>
                             </div>
                         </div>
                     ` : ''}
@@ -292,22 +292,22 @@
                     <!-- Station Info (Collapsed by default) -->
                     ${(session.calledstationid || session.callingstationid) ? `
                         <details class="mt-3 group">
-                            <summary class="cursor-pointer bg-gray-100 hover:bg-gray-200 rounded-lg p-3 text-sm font-medium text-gray-700 transition-colors">
+                            <summary class="cursor-pointer bg-gray-700 hover:bg-gray-600 rounded-lg p-3 text-sm font-medium text-gray-300 transition-colors">
                                 <i class="fas fa-chevron-right group-open:rotate-90 transition-transform inline-block mr-2"></i>
                                 Station Information
                             </summary>
-                            <div class="mt-2 bg-white rounded-lg p-3 border border-gray-200">
+                            <div class="mt-2 bg-gray-800/50 rounded-lg p-3 border border-gray-600">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                                     ${session.calledstationid ? `
                                         <div>
-                                            <span class="text-gray-500 font-medium">Called Station ID:</span>
-                                            <p class="font-mono text-gray-800 mt-1">${session.calledstationid}</p>
+                                            <span class="text-gray-400 font-medium">Called Station ID:</span>
+                                            <p class="font-mono text-gray-300 mt-1">${session.calledstationid}</p>
                                         </div>
                                     ` : ''}
                                     ${session.callingstationid ? `
                                         <div>
-                                            <span class="text-gray-500 font-medium">Calling Station ID:</span>
-                                            <p class="font-mono text-gray-800 mt-1">${session.callingstationid}</p>
+                                            <span class="text-gray-400 font-medium">Calling Station ID:</span>
+                                            <p class="font-mono text-gray-300 mt-1">${session.callingstationid}</p>
                                         </div>
                                     ` : ''}
                                 </div>
